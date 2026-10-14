@@ -5,3 +5,4 @@ compile_commands.json
 packaging/*.pkg.tar.*
 packaging/src/
 packaging/pkg/
+packaging/*.tar.gz

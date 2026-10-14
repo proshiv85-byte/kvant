@@ -10,7 +10,7 @@ depends=('qt6-base' 'qt6-declarative' 'qt6-multimedia' 'taglib' 'hicolor-icon-th
 makedepends=('cmake' 'ninja')
 optdepends=('qt6-multimedia-ffmpeg: FFmpeg playback backend (recommended)')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP') # replace with the real checksum (updpkgsums) once the tag exists
+sha256sums=('f218eb8ab6584ffc60b580d56aba342798e93a91f9d29e5bc103cd1a434213a2')
 
 build() {
   cmake -S "$pkgname-$pkgver" -B build -G Ninja \
