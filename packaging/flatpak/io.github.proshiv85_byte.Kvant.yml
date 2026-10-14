@@ -1,0 +1,47 @@
+id: io.github.proshiv85_byte.Kvant
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+command: kvant
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --socket=pulseaudio
+  # Files and folders picked in the file dialog or dropped on the window come in
+  # through portals; the music folder is readable directly as well.
+  - --filesystem=xdg-music:ro
+  # MPRIS (media keys, desktop media widgets) and single-instance "open with".
+  - --own-name=org.mpris.MediaPlayer2.kvant
+
+modules:
+  - name: taglib
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_TESTING=OFF
+    sources:
+      - type: git
+        url: https://github.com/taglib/taglib.git
+        tag: v2.0.2
+    cleanup:
+      - /bin
+      - /include
+      - /lib/cmake
+      - /lib/pkgconfig
+
+  - name: kvant
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DKVANT_APP_ID=io.github.proshiv85_byte.Kvant
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - build
+          - compile_commands.json
+          - packaging/src
+          - packaging/pkg

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<component type="desktop-application">
+  <id>@KVANT_APP_ID@</id>
+  <name>Kvant</name>
+  <summary>A clean Material 3 audio player</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.proshiv85_byte">
+    <name>rDev</name>
+  </developer>
+  <description>
+    <p>
+      Kvant is a lightweight audio player with a Material 3 look: a squiggly progress
+      bar, a morphing play button and a full color scheme generated from one accent color.
+    </p>
+    <ul>
+      <li>Play a single file, or open a folder as a queue</li>
+      <li>Queue panel on the left or right</li>
+      <li>Light, dark or system theme with any accent color</li>
+      <li>Adjustable squiggly progress bar</li>
+      <li>Drag and drop, media keys and desktop media controls (MPRIS)</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">@KVANT_APP_ID@.desktop</launchable>
+  <url type="homepage">https://github.com/proshiv85-byte/kvant</url>
+  <url type="bugtracker">https://github.com/proshiv85-byte/kvant/issues</url>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+    <category>Player</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-14"/>
+  </releases>
+</component>

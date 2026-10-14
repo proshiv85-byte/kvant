@@ -55,8 +55,8 @@ int main(int argc, char *argv[])
     QGuiApplication::setApplicationDisplayName("Kvant");
     QGuiApplication::setOrganizationName("kvant");
     QGuiApplication::setApplicationVersion(KVANT_VERSION);
-    QGuiApplication::setDesktopFileName("kvant");
-    QGuiApplication::setWindowIcon(QIcon::fromTheme("kvant"));
+    QGuiApplication::setDesktopFileName(KVANT_APP_ID);
+    QGuiApplication::setWindowIcon(QIcon::fromTheme(KVANT_APP_ID));
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Kvant — a clean Material 3 audio player");

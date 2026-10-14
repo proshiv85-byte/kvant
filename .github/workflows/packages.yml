@@ -1,0 +1,222 @@
+# Builds Kvant for other distros, tests each package on a clean system and
+# attaches them to the GitHub release.
+#
+# Runs automatically when a version tag (v*) is pushed. It can also be started
+# by hand from the Actions tab to (re)build packages for an existing release.
+name: Packages
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the packages to (e.g. v0.1.0)
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  # ---------------------------------------------------------------- .deb ----
+  deb:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkgconf file dpkg-dev \
+            qt6-base-dev qt6-declarative-dev qt6-declarative-dev-tools \
+            qt6-multimedia-dev libtag-dev
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build
+          cd build && cpack -G DEB
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: build/*.deb
+
+  deb-test:
+    needs: deb
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['debian:trixie', 'ubuntu:26.04']
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: deb
+      - name: Install package
+        run: |
+          apt-get update
+          apt-get install -y ./kvant_*.deb xvfb xauth
+      - name: Smoke test
+        run: xvfb-run -a sh packaging/ci/smoke-test.sh kvant
+
+  # ---------------------------------------------------------------- .rpm ----
+  rpm:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          dnf install -y gcc-c++ cmake ninja-build rpm-build \
+            qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtmultimedia-devel taglib-devel
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build
+          cd build && cpack -G RPM
+          for f in *.rpm; do mv "$f" "${f%.x86_64.rpm}.fc$(rpm -E %fedora).x86_64.rpm"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm
+          path: build/*.rpm
+
+  rpm-test:
+    needs: rpm
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: rpm
+      - name: Install package
+        run: dnf install -y ./kvant-*.rpm xorg-x11-server-Xvfb xauth
+      - name: Smoke test
+        run: xvfb-run -a sh packaging/ci/smoke-test.sh kvant
+
+  # ------------------------------------------------------------ AppImage ----
+  appimage:
+    # Oldest supported Ubuntu: the AppImage then runs on distros at least this old.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          modules: 'qtmultimedia'
+          cache: true
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libegl1 libpulse0 \
+            libfuse2 xvfb
+      - name: Build TagLib 2
+        run: |
+          git clone --depth 1 --branch v2.0.2 --recurse-submodules https://github.com/taglib/taglib.git
+          cmake -S taglib -B taglib-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/usr/local
+          cmake --build taglib-build
+          sudo cmake --install taglib-build
+          sudo ldconfig
+      - name: Build Kvant
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build
+          DESTDIR=AppDir cmake --install build
+      - name: Bundle AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          QML_SOURCES_PATHS: ${{ github.workspace }}/qml
+        run: |
+          base=https://github.com/linuxdeploy
+          wget -q $base/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q $base/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          export QMAKE="$QT_ROOT_DIR/bin/qmake"
+          if [ -f "$QT_ROOT_DIR/plugins/platforms/libqwayland-generic.so" ]; then
+            export EXTRA_PLATFORM_PLUGINS=libqwayland-generic.so
+          fi
+          export LINUXDEPLOY_OUTPUT_VERSION=$(grep -oP 'project\(kvant VERSION \K[0-9.]+' CMakeLists.txt)
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage \
+            --desktop-file AppDir/usr/share/applications/kvant.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/kvant.svg
+          ls -la *.AppImage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: Kvant-*.AppImage
+
+  appimage-test:
+    needs: appimage
+    runs-on: ubuntu-latest
+    # A system with only an old Qt (6.4) around, to prove everything needed is bundled.
+    container: ubuntu:24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: appimage
+      - name: Install a minimal desktop base
+        run: |
+          apt-get update
+          apt-get install -y libgl1 libegl1 libfontconfig1 libx11-6 libx11-xcb1 libxkbcommon0 \
+            libdbus-1-3 libglib2.0-0 xvfb xauth
+      - name: Smoke test
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          chmod +x Kvant-*.AppImage
+          xvfb-run -a sh packaging/ci/smoke-test.sh ./Kvant-*.AppImage
+
+  # ------------------------------------------------------------- Flatpak ----
+  flatpak:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder xvfb
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      - name: Build bundle
+        run: |
+          id=io.github.proshiv85_byte.Kvant
+          version=$(grep -oP 'project\(kvant VERSION \K[0-9.]+' CMakeLists.txt)
+          flatpak-builder --user --install-deps-from=flathub --force-clean --repo=repo \
+            flatpak-build packaging/flatpak/$id.yml
+          flatpak build-bundle repo Kvant-$version.flatpak $id \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+      - name: Smoke test
+        run: |
+          flatpak install --user -y --noninteractive ./Kvant-*.flatpak
+          xvfb-run -a sh packaging/ci/smoke-test.sh \
+            flatpak run --env=QT_QPA_PLATFORM=xcb io.github.proshiv85_byte.Kvant
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: Kvant-*.flatpak
+
+  # ------------------------------------------------------------- Release ----
+  publish:
+    needs: [deb-test, rpm-test, appimage-test, flatpak]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Attach packages to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Kvant ${TAG#v}" --generate-notes
+          gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
