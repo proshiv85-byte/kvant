@@ -116,7 +116,7 @@ jobs:
           sudo apt-get install -y ninja-build libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
             libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libegl1 libpulse0 \
-            libfuse2 xvfb
+            libopengl0 libfuse2 xvfb
       - name: Build TagLib 2
         run: |
           git clone --depth 1 --branch v2.0.2 --recurse-submodules https://github.com/taglib/taglib.git
@@ -144,7 +144,11 @@ jobs:
             export EXTRA_PLATFORM_PLUGINS=libqwayland-generic.so
           fi
           export LINUXDEPLOY_OUTPUT_VERSION=$(grep -oP 'project\(kvant VERSION \K[0-9.]+' CMakeLists.txt)
+          # Qt links libOpenGL (libglvnd's vendor-neutral dispatcher), which isn't installed
+          # everywhere by default. It's safe to bundle: the real GPU driver still comes
+          # from the system.
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage \
+            --library /usr/lib/x86_64-linux-gnu/libOpenGL.so.0 \
             --desktop-file AppDir/usr/share/applications/kvant.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/kvant.svg
           ls -la *.AppImage
