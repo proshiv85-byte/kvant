@@ -14,7 +14,56 @@ progress line, a morphing play button and a full color scheme generated from one
 - Single instance: "Open with Kvant" in a file manager reuses the open window
 - Embedded cover art, or `cover.jpg` / `folder.jpg` next to the files
 
-## Building
+## Install
+
+Download links are on the [latest release](https://github.com/proshiv85-byte/kvant/releases/latest).
+
+### Arch Linux (AUR)
+
+Kvant is on the AUR as [`kvant`](https://aur.archlinux.org/packages/kvant):
+
+```sh
+yay -S kvant      # or: paru -S kvant
+```
+
+### Debian / Ubuntu (.deb)
+
+For Debian 13 (trixie) and Ubuntu 26.04 or newer:
+
+```sh
+sudo apt install ./kvant_*_amd64.deb
+```
+
+Older releases (like Ubuntu 24.04) ship a Qt that's too old. Use the AppImage or Flatpak there.
+
+### Fedora (.rpm)
+
+The file name says which Fedora version it was built for (e.g. `fc44` = Fedora 44). It works on that version and newer:
+
+```sh
+sudo dnf install ./kvant-*.rpm
+```
+
+### Flatpak (any distro)
+
+```sh
+flatpak install --user ./Kvant-*.flatpak
+flatpak run io.github.proshiv85_byte.Kvant
+```
+
+Needs the Flathub remote, which provides the KDE runtime. If you don't have it, add it first:
+`flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo`
+
+### AppImage (any distro)
+
+Qt is bundled, so it also runs on older distros:
+
+```sh
+chmod +x Kvant-*-x86_64.AppImage
+./Kvant-*-x86_64.AppImage
+```
+
+## Building from source
 
 Dependencies: Qt ≥ 6.8 (base, declarative, multimedia + a backend such as
 `qt6-multimedia-ffmpeg`), TagLib ≥ 2.0, CMake.
