@@ -49,6 +49,13 @@ qt_add_qml_module(kvant
         qml/components/TextButton.qml
 )
 
+# Only link libraries that are actually used. Qt's CMake config pulls in libOpenGL/libGLX,
+# which Kvant doesn't call directly; they would become hard dependencies of the
+# packages (and the AppImage can't bundle them, since they belong to the GPU driver).
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_link_options(kvant PRIVATE LINKER:--as-needed)
+endif()
+
 target_include_directories(kvant PRIVATE src)
 target_compile_definitions(kvant PRIVATE KVANT_VERSION="${PROJECT_VERSION}" KVANT_APP_ID="${KVANT_APP_ID}")
 
