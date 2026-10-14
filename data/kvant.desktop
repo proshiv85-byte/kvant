@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Kvant
+GenericName=Audio Player
+Comment=A clean Material 3 audio player
+Exec=kvant %U
+Icon=kvant
+Terminal=false
+Categories=AudioVideo;Audio;Player;Qt;
+Keywords=music;audio;player;mp3;flac;
+MimeType=audio/mpeg;audio/mp3;audio/flac;audio/x-flac;audio/ogg;audio/x-vorbis+ogg;audio/x-opus+ogg;audio/opus;audio/mp4;audio/aac;audio/x-m4a;audio/wav;audio/x-wav;audio/x-aiff;audio/x-ms-wma;audio/x-matroska;audio/x-ape;audio/x-wavpack;audio/x-musepack;inode/directory;
+StartupWMClass=kvant
