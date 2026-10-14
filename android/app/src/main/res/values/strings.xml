@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kvant</string>
+    <string name="queue">Queue</string>
+    <string name="open_files">Open files</string>
+    <string name="open_folder">Open folder</string>
+    <string name="settings">Settings</string>
+    <string name="nothing_playing">Nothing playing</string>
+    <string name="empty_hint">Open files or a folder</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="add_files">Add files</string>
+    <string name="add_folder">Add folder</string>
+    <string name="clear_queue">Clear queue</string>
+    <string name="queue_empty">Queue is empty</string>
+    <string name="remove">Remove from queue</string>
+    <string name="theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="accent_color">Accent color</string>
+    <string name="queue_position">Queue position</string>
+    <string name="side_left">Left</string>
+    <string name="side_right">Right</string>
+    <string name="progress_bar">Progress bar</string>
+    <string name="squiggly_line">Squiggly line</string>
+    <string name="height">Height</string>
+    <string name="wavelength">Wavelength</string>
+    <string name="speed">Speed</string>
+    <string name="error_playback">Can\'t play this file (%1$s)</string>
+    <string name="error_no_audio">No playable audio files found</string>
+    <plurals name="tracks">
+        <item quantity="one">%d track</item>
+        <item quantity="other">%d tracks</item>
+    </plurals>
+</resources>

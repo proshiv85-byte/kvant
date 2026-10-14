@@ -43,5 +43,6 @@ modules:
         skip:
           - build
           - compile_commands.json
+          - android
           - packaging/src
           - packaging/pkg

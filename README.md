@@ -1,6 +1,6 @@
 # Kvant
 
-A clean, lightweight audio player for Linux with a Material 3 look: the squiggly
+A clean, lightweight audio player for Linux and Android with a Material 3 look: the squiggly
 progress line, a morphing play button and a full color scheme generated from one accent color.
 
 ## Features
@@ -63,6 +63,11 @@ chmod +x Kvant-*-x86_64.AppImage
 ./Kvant-*-x86_64.AppImage
 ```
 
+### Android
+
+Download `Kvant-*.apk` from the release and open it on your phone. You may need to allow
+installing apps from your browser or file manager. Requires Android 8.0 or newer.
+
 ## Building from source
 
 Dependencies: Qt ≥ 6.8 (base, declarative, multimedia + a backend such as
@@ -75,6 +80,15 @@ sudo cmake --install build
 ```
 
 Run without installing: `./build/kvant [files or folders…]`
+
+### Android app
+
+The Android app (Kotlin + Jetpack Compose, in `android/`) needs JDK 17+ and the Android SDK:
+
+```sh
+cd android
+./gradlew assembleDebug    # → app/build/outputs/apk/debug/app-debug.apk
+```
 
 ## Keyboard shortcuts
 

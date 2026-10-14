@@ -207,9 +207,43 @@ jobs:
           name: flatpak
           path: Kvant-*.flatpak
 
+  # ------------------------------------------------------------- Android ----
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build signed APK
+        working-directory: android
+        env:
+          KVANT_KEYSTORE_BASE64: ${{ secrets.KVANT_KEYSTORE_BASE64 }}
+          KVANT_KEYSTORE_PASSWORD: ${{ secrets.KVANT_KEYSTORE_PASSWORD }}
+          KVANT_KEY_ALIAS: ${{ secrets.KVANT_KEY_ALIAS }}
+          KVANT_KEY_PASSWORD: ${{ secrets.KVANT_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KVANT_KEYSTORE_BASE64" ]; then
+            echo "::error::Signing secrets are missing (KVANT_KEYSTORE_BASE64 etc.)"
+            exit 1
+          fi
+          export KVANT_KEYSTORE="$RUNNER_TEMP/kvant-release.jks"
+          echo "$KVANT_KEYSTORE_BASE64" | base64 -d > "$KVANT_KEYSTORE"
+          ./gradlew --no-daemon assembleRelease
+          version=$(grep -oP 'project\(kvant VERSION \K[0-9.]+' ../CMakeLists.txt)
+          cp app/build/outputs/apk/release/app-release.apk "../Kvant-$version.apk"
+          rm -f "$KVANT_KEYSTORE"
+      - name: Verify signature
+        run: $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner verify --print-certs Kvant-*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: Kvant-*.apk
+
   # ------------------------------------------------------------- Release ----
   publish:
-    needs: [deb-test, rpm-test, appimage-test, flatpak]
+    needs: [deb-test, rpm-test, appimage-test, flatpak, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
