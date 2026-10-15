@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kvant Audio Player</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Kvant is a clean Material 3 audio player for Linux and Android. Pick one accent color and the whole app follows.">
+<meta property="og:title" content="Kvant Audio Player">
+<meta property="og:description" content="A clean Material 3 audio player for Linux and Android.">
+<meta property="og:url" content="https://kvant.sigeon.space/">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://kvant.sigeon.space/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20128%20128%22%3E%3Crect%20x%3D%228%22%20y%3D%228%22%20width%3D%22112%22%20height%3D%22112%22%20rx%3D%2236%22%20fill%3D%22%236750A4%22/%3E%3Cpath%20d%3D%22M28%2064%20q6.5%20-12%2013%200%20t13%200%20t13%200%20t13%200%22%20fill%3D%22none%22%20stroke%3D%22%23EADDFF%22%20stroke-width%3D%228%22%20stroke-linecap%3D%22round%22/%3E%3Crect%20x%3D%2286%22%20y%3D%2246%22%20width%3D%228%22%20height%3D%2236%22%20rx%3D%224%22%20fill%3D%22%23EADDFF%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one wide column. Hero text, then a "stage" with the live player mockup
+   beside its settings sheet, then features, downloads and reference. The page's
+   colors come from the same one-seed tonal scheme the app uses (src/theme.cpp). */
+
+/* Default scheme for the seed #6750A4. The script regenerates these for other accents. */
+:root{--primary:#6750A4;--on-primary:#FFFFFF;--primary-container:#E4DFFF;--on-primary-container:#270255;--secondary-container:#E4DFFF;--on-secondary-container:#1E1733;--tertiary-container:#FFD8E7;--on-tertiary-container:#380821;--surface:#FAF9FF;--on-surface:#1C1B21;--on-surface-variant:#484554;--sc-lowest:#FFFFFF;--sc-low:#F4F2FB;--sc:#EEEDF6;--sc-high:#E9E7F0;--sc-highest:#E3E1EA;--outline:#787585;--outline-variant:#C7C4D6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--primary:#CBBEFF;--on-primary:#3A1E6F;--primary-container:#503789;--on-primary-container:#E4DFFF;--secondary-container:#494262;--on-secondary-container:#E4DFFF;--tertiary-container:#6A364D;--on-tertiary-container:#FFD8E7;--surface:#141318;--on-surface:#E3E1EA;--on-surface-variant:#C7C4D6;--sc-lowest:#0E0D13;--sc-low:#1C1B21;--sc:#201F25;--sc-high:#2A2930;--sc-highest:#35343B;--outline:#928FA0;--outline-variant:#484554;color-scheme:dark}}
+:root[data-theme="dark"]{--primary:#CBBEFF;--on-primary:#3A1E6F;--primary-container:#503789;--on-primary-container:#E4DFFF;--secondary-container:#494262;--on-secondary-container:#E4DFFF;--tertiary-container:#6A364D;--on-tertiary-container:#FFD8E7;--surface:#141318;--on-surface:#E3E1EA;--on-surface-variant:#C7C4D6;--sc-lowest:#0E0D13;--sc-low:#1C1B21;--sc:#201F25;--sc-high:#2A2930;--sc-highest:#35343B;--outline:#928FA0;--outline-variant:#484554;color-scheme:dark}
+
+:root{
+  --font-display:"Roboto Flex","Google Sans Flex","Google Sans",Roboto,system-ui,sans-serif;
+  --font-body:"Roboto Flex",Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"Roboto Mono",ui-monospace,"DejaVu Sans Mono",monospace;
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --ease:cubic-bezier(.2,0,0,1);
+  --page:1160px;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--surface);color:var(--on-surface);
+  font-family:var(--font-body);font-size:16px;line-height:1.55;
+  font-variation-settings:"opsz" 16;
+  transition:background-color .4s var(--ease),color .4s var(--ease);
+}
+a{color:var(--primary)}
+img{max-width:100%}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--primary);outline-offset:3px;border-radius:8px}
+button{font:inherit;color:inherit}
+
+.wrap{
+  max-width:var(--page);margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width:720px){.wrap{padding-left:max(32px, env(safe-area-inset-left, 0px));padding-right:max(32px, env(safe-area-inset-right, 0px))}}
+
+/* ---------- Header ---------- */
+.top{display:flex;align-items:center;gap:16px;padding-block:20px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--on-surface);
+  font-family:var(--font-display);font-weight:700;font-size:20px;font-stretch:115%;letter-spacing:-.01em}
+.brand svg{width:36px;height:36px;flex:none}
+.top nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.top nav a{color:var(--on-surface-variant);text-decoration:none;padding:8px 14px;border-radius:999px;font-weight:500;font-size:15px;
+  transition:background-color .2s var(--ease),color .2s}
+.top nav a:hover{background:var(--sc-high);color:var(--on-surface)}
+@media (max-width:560px){.top nav a.opt{display:none}}
+
+/* ---------- Hero ---------- */
+.hero{padding-block:24px 40px;display:grid;gap:24px}
+.eyebrow{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--primary);margin:0}
+h1{
+  font-family:var(--font-display);margin:0;
+  font-size:clamp(44px, 7.4vw, 88px);line-height:.95;letter-spacing:-.035em;
+  font-weight:780;font-stretch:122%;font-variation-settings:"opsz" 144;
+  text-wrap:balance;max-width:14ch;
+}
+h1 .accent{color:var(--primary);transition:color .4s var(--ease)}
+.lede{font-size:clamp(17px, 2vw, 20px);color:var(--on-surface-variant);max-width:56ch;margin:0;text-wrap:pretty}
+.cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 28px;border-radius:999px;border:0;cursor:pointer;
+  font-size:16px;font-weight:600;text-decoration:none;letter-spacing:.01em;
+  transition:border-radius .35s var(--spring),transform .35s var(--spring),background-color .3s var(--ease);
+}
+.btn svg{width:22px;height:22px;fill:currentColor;flex:none}
+.btn:hover{border-radius:18px}
+.btn:active{transform:scale(.96)}
+.btn.filled{background:var(--primary);color:var(--on-primary)}
+.btn.tonal{background:var(--secondary-container);color:var(--on-secondary-container)}
+.platforms{display:flex;gap:8px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
+.platforms li{font-size:14px;color:var(--on-surface-variant);border:1px solid var(--outline-variant);border-radius:8px;padding:4px 12px}
+
+/* ---------- Stage: mockup + settings ---------- */
+.stage{
+  display:grid;gap:24px;align-items:start;
+  grid-template-columns:minmax(0,1fr) 340px;
+  background:var(--sc-low);border-radius:40px;padding:32px;
+  transition:background-color .4s var(--ease);
+}
+@media (max-width:980px){.stage{grid-template-columns:minmax(0,1fr);padding:20px;border-radius:32px}}
+@media (max-width:480px){.stage{margin-left:-8px;margin-right:-8px;padding:16px 12px;border-radius:28px}}
+.stage-main{min-width:0;display:grid;gap:16px;justify-items:center}
+.stage-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;flex-wrap:wrap}
+.stage-note{font-size:13px;color:var(--on-surface-variant);margin:0}
+
+/* Segmented buttons (as in qml/components/SegmentedButtons.qml) */
+.seg{display:inline-flex;border:1px solid var(--outline);border-radius:999px;overflow:hidden;height:40px}
+.seg button{border:0;background:transparent;padding:0 16px;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;
+  color:var(--on-surface);transition:background-color .25s var(--ease)}
+.seg button+button{border-left:1px solid var(--outline)}
+.seg button svg{width:18px;height:18px;fill:currentColor;width:0;transition:width .25s var(--ease)}
+.seg button[aria-pressed="true"]{background:var(--secondary-container);color:var(--on-secondary-container)}
+.seg button[aria-pressed="true"] svg{width:18px}
+.seg.full{display:flex;width:100%}
+.seg.full button{flex:1;justify-content:center}
+
+/* The device frame. data-os switches between a Linux window and a phone. */
+.device{
+  --r:22px;
+  width:100%;max-width:720px;background:var(--surface);color:var(--on-surface);
+  border-radius:var(--r);overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.12),0 18px 48px -12px rgba(0,0,0,.28);
+  outline:1px solid var(--outline-variant);
+  transition:max-width .5s var(--ease),border-radius .5s var(--ease),background-color .4s var(--ease);
+}
+.device[data-os="android"]{max-width:330px;--r:44px;outline:8px solid var(--sc-highest)}
+.titlebar{display:flex;align-items:center;height:40px;padding:0 12px 0 16px;background:var(--sc);font-size:13px;font-weight:500;color:var(--on-surface-variant);gap:8px}
+.titlebar span{margin-right:auto}
+.titlebar i{width:14px;height:14px;border-radius:50%;background:var(--sc-highest)}
+.statusbar{display:none;justify-content:space-between;align-items:center;height:36px;padding:8px 28px 0;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.statusbar .cam{width:14px;height:14px;border-radius:50%;background:var(--on-surface);opacity:.85}
+.statusbar .icons{display:flex;gap:6px;align-items:center}
+.statusbar .icons b{display:block;width:16px;height:10px;border-radius:3px;background:var(--on-surface);opacity:.85}
+.device[data-os="android"] .titlebar{display:none}
+.device[data-os="android"] .statusbar{display:flex}
+
+.app{display:flex;min-height:470px}
+.device[data-side="right"] .app{flex-direction:row-reverse}
+.queue{width:236px;flex:none;background:var(--sc-low);padding:12px 8px;display:flex;flex-direction:column;gap:2px;
+  transition:width .45s var(--ease),padding .45s var(--ease),background-color .4s var(--ease);overflow:hidden}
+.device[data-queue="closed"] .queue,.device[data-os="android"] .queue{width:0;padding-inline:0}
+@media (max-width:620px){.queue{width:0;padding-inline:0}}
+.queue h3{margin:4px 12px 8px;font-size:14px;font-weight:600;color:var(--on-surface-variant);white-space:nowrap}
+.qitem{display:flex;align-items:center;gap:10px;width:220px;border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:14px;cursor:pointer;
+  transition:background-color .2s var(--ease),border-radius .3s var(--spring)}
+.qitem:hover{background:var(--sc-high)}
+.qitem[aria-current="true"]{background:var(--secondary-container);color:var(--on-secondary-container);border-radius:20px}
+.qart{width:36px;height:36px;border-radius:10px;flex:none}
+.qtext{min-width:0;display:grid}
+.qtext b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qtext small{font-size:12px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.now{flex:1;min-width:0;display:flex;flex-direction:column;padding:8px 8px 20px}
+.nowbar{display:flex;gap:2px;align-items:center}
+.device[data-side="right"] #qtoggle{order:2}
+.nowbar .grow{flex:1}
+.ib{width:40px;height:40px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--on-surface-variant);
+  transition:background-color .2s var(--ease),transform .35s var(--spring),border-radius .3s var(--spring)}
+.ib svg{width:24px;height:24px;fill:currentColor;transition:transform .35s var(--spring)}
+.ib:hover{background:var(--sc-high)}
+.ib.rot:hover svg{transform:rotate(var(--rot,10deg))}
+.ib.tonal{background:var(--secondary-container);color:var(--on-secondary-container)}
+.nowbody{width:min(100% - 24px, 400px);margin:0 auto;display:flex;flex-direction:column;align-items:stretch}
+.cover{width:min(100%, 220px);aspect-ratio:1;max-width:100%;margin:8px auto 0;border-radius:20px;position:relative;overflow:hidden;
+  transition:transform .6s var(--spring),border-radius .4s var(--ease)}
+.device[data-os="android"] .cover{width:min(100%, 250px);border-radius:28px;margin-top:20px}
+.device.paused .cover{transform:scale(.92)}
+.art{background:var(--c-bg);position:relative}
+.art::before,.art::after{content:"";position:absolute;border-radius:50%}
+.art[data-a="0"]{--c-bg:var(--primary-container)}
+.art[data-a="0"]::before{inset:18% 18% 18% 18%;background:var(--primary);border-radius:38%}
+.art[data-a="0"]::after{inset:40%;background:var(--primary-container)}
+.art[data-a="1"]{--c-bg:var(--tertiary-container)}
+.art[data-a="1"]::before{left:-20%;right:30%;top:20%;bottom:-30%;background:var(--primary)}
+.art[data-a="1"]::after{left:45%;right:10%;top:10%;bottom:45%;background:var(--on-tertiary-container);opacity:.75}
+.art[data-a="2"]{--c-bg:var(--secondary-container)}
+.art[data-a="2"]::before{inset:12% 50% 12% 12%;background:var(--primary);border-radius:999px}
+.art[data-a="2"]::after{inset:30% 12% 30% 56%;background:var(--tertiary-container);border-radius:999px}
+.art[data-a="3"]{--c-bg:var(--primary)}
+.art[data-a="3"]::before{inset:25%;background:var(--primary-container);border-radius:0;transform:rotate(45deg);border-radius:22%}
+.art[data-a="3"]::after{inset:43%;background:var(--primary)}
+.art[data-a="4"]{--c-bg:var(--on-primary-container)}
+.art[data-a="4"]::before{left:15%;right:15%;top:55%;bottom:-40%;background:var(--tertiary-container)}
+.art[data-a="4"]::after{left:58%;right:16%;top:16%;bottom:58%;background:var(--primary-container)}
+
+.ttl{margin:18px 0 0;text-align:center;font-size:20px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{margin:4px 0 0;text-align:center;font-size:14px;color:var(--on-surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seek{display:block;width:100%;height:40px;margin-top:12px;cursor:pointer;touch-action:none}
+.times{display:flex;justify-content:space-between;font-size:12.5px;color:var(--on-surface-variant);font-variant-numeric:tabular-nums}
+.controls{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:10px}
+.controls .ib{width:52px;height:52px}
+.controls .ib svg{width:26px;height:26px}
+.controls .ib:hover{border-radius:16px}
+.controls .ib.prev:hover svg{transform:translateX(-3px)}
+.controls .ib.next:hover svg{transform:translateX(3px)}
+
+/* Play button: circle when paused, rounded square while playing (qml/components/PlayButton.qml) */
+.play{width:74px;height:74px;border:0;border-radius:50%;background:var(--primary);color:var(--on-primary);cursor:pointer;position:relative;
+  transition:border-radius .5s var(--spring),transform .45s var(--spring),background-color .4s var(--ease)}
+.play:hover{border-radius:40%;transform:scale(1.06)}
+.play.on{border-radius:30%}
+.play.on:hover{border-radius:38%}
+.play:active{border-radius:20%;transform:scale(.9)}
+.play svg{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;fill:currentColor;
+  transition:opacity .15s,transform .26s var(--spring)}
+.play .i-pause{opacity:0;transform:scale(.4) rotate(90deg)}
+.play.on .i-play{opacity:0;transform:scale(.4) rotate(-90deg)}
+.play.on .i-pause{opacity:1;transform:none}
+
+.vol{display:flex;align-items:center;gap:4px;width:min(100%, 260px);margin:14px auto 0}
+.vol .rot{--rot:-12deg}
+.vbar{flex:1;height:32px;position:relative;cursor:pointer;touch-action:none}
+.vbar .fill,.vbar .rest{position:absolute;top:10px;height:12px}
+.vbar .fill{left:0;background:var(--primary);border-radius:6px 2px 2px 6px}
+.vbar .rest{right:0;background:var(--secondary-container);border-radius:2px 6px 6px 2px}
+.vbar .knob{position:absolute;top:2px;width:4px;height:28px;border-radius:2px;background:var(--primary);margin-left:-2px}
+
+/* Settings sheet (qml/SettingsSheet.qml) */
+.sheet{background:var(--sc-high);border-radius:28px;padding:24px;display:grid;gap:22px;transition:background-color .4s var(--ease)}
+@media (min-width:981px){.sheet{position:sticky;top:calc(16px + env(safe-area-inset-top, 0px))}}
+.sheet h2{margin:0;font-family:var(--font-display);font-size:24px;font-weight:650;font-stretch:110%}
+.field{display:grid;gap:10px}
+.field>.lbl{font-size:13px;font-weight:600;color:var(--primary);letter-spacing:.02em}
+.swatches{display:grid;grid-template-columns:repeat(8, minmax(0,1fr));gap:6px}
+.sw{aspect-ratio:1;max-width:100%;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;
+  transition:border-radius .35s var(--spring),transform .35s var(--spring)}
+.sw:hover{transform:scale(1.12);border-radius:36%}
+.sw:active{transform:scale(.9)}
+.sw svg{width:60%;height:60%;fill:#fff;opacity:0;transform:scale(.3);transition:opacity .2s,transform .3s var(--spring)}
+.sw[aria-pressed="true"]{border-radius:28%}
+.sw[aria-pressed="true"] svg{opacity:1;transform:none}
+.hexrow{display:flex;gap:10px;align-items:center}
+.hexrow label{display:flex;align-items:center;gap:10px;flex:1;min-width:0;border:1px solid var(--outline);border-radius:12px;padding:0 6px 0 12px;height:44px;cursor:text}
+.hexrow input[type="text"]{border:0;background:transparent;font:500 15px var(--font-mono);color:var(--on-surface);width:100%;min-width:0;outline:none;text-transform:uppercase}
+.hexrow .dot{width:20px;height:20px;border-radius:6px;background:var(--primary);flex:none}
+.hexrow input[type="color"]{width:44px;height:44px;border:0;border-radius:12px;padding:0;background:transparent;cursor:pointer;flex:none}
+.hexrow input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+.hexrow input[type="color"]::-webkit-color-swatch{border:0;border-radius:12px}
+.hexrow input[type="color"]::-moz-color-swatch{border:0;border-radius:12px}
+
+.switchrow{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:15px}
+.switch{width:52px;height:32px;border-radius:16px;border:2px solid var(--outline);background:var(--sc-highest);position:relative;cursor:pointer;flex:none;padding:0;
+  transition:background-color .25s var(--ease),border-color .25s}
+.switch::after{content:"";position:absolute;top:50%;left:6px;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:var(--outline);
+  transition:all .3s var(--spring)}
+.switch[aria-checked="true"]{background:var(--primary);border-color:var(--primary)}
+.switch[aria-checked="true"]::after{left:22px;width:24px;height:24px;margin-top:-12px;background:var(--on-primary)}
+.range{display:grid;gap:2px}
+.range .row{display:flex;justify-content:space-between;font-size:14px}
+.range output{font-variant-numeric:tabular-nums;color:var(--on-surface-variant);font-family:var(--font-mono);font-size:13px}
+.range.off{opacity:.38}
+input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:32px;background:transparent;margin:0;cursor:pointer;
+  --p:50%}
+input[type="range"]::-webkit-slider-runnable-track{height:16px;border-radius:8px;
+  background:linear-gradient(to right,var(--primary) 0 var(--p),var(--secondary-container) var(--p) 100%)}
+input[type="range"]::-moz-range-track{height:16px;border-radius:8px;background:var(--secondary-container)}
+input[type="range"]::-moz-range-progress{height:16px;border-radius:8px;background:var(--primary)}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:4px;height:32px;border-radius:2px;background:var(--primary);margin-top:-8px;box-shadow:0 0 0 4px var(--sc-high)}
+input[type="range"]::-moz-range-thumb{width:4px;height:32px;border:0;border-radius:2px;background:var(--primary);box-shadow:0 0 0 4px var(--sc-high)}
+
+/* ---------- Sections ---------- */
+section{padding-block:72px 0}
+h2.big{font-family:var(--font-display);font-size:clamp(32px, 5vw, 56px);line-height:1;letter-spacing:-.025em;font-weight:760;font-stretch:118%;
+  font-variation-settings:"opsz" 96;margin:0;text-wrap:balance}
+.intro{color:var(--on-surface-variant);max-width:60ch;margin:14px 0 0;font-size:17px}
+.split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:40px 56px;align-items:start}
+@media (max-width:860px){.split{grid-template-columns:minmax(0,1fr)}}
+
+.feats{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 32px}
+@media (max-width:620px){.feats{grid-template-columns:minmax(0,1fr)}}
+.feats li{padding:16px 0;border-top:1px solid var(--outline-variant);display:grid;align-content:start;gap:4px;min-width:0}
+.feats b{font-weight:600;font-size:16.5px}
+.feats span{color:var(--on-surface-variant);font-size:15px}
+.feats code,.dl code,.keys code{font-family:var(--font-mono);font-size:.88em;background:var(--sc-high);padding:1px 6px;border-radius:6px}
+.lean{margin-top:28px;background:var(--primary-container);color:var(--on-primary-container);border-radius:28px;padding:24px 28px;display:grid;gap:6px;
+  transition:background-color .4s var(--ease),color .4s var(--ease)}
+.lean b{font-family:var(--font-display);font-size:22px;font-weight:700;font-stretch:112%}
+.lean p{margin:0;max-width:62ch}
+
+/* Downloads */
+.dl-head{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap}
+.dl-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:32px}
+@media (max-width:760px){.dl-grid{grid-template-columns:minmax(0,1fr)}}
+.dl{background:var(--sc);border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:12px;min-width:0;
+  transition:background-color .4s var(--ease)}
+.dl.android{grid-column:1 / -1;background:var(--tertiary-container);color:var(--on-tertiary-container);
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 28px}
+@media (max-width:760px){.dl.android{grid-template-columns:minmax(0,1fr)}}
+.dl.android p{color:inherit;opacity:.85}
+.dl-title{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.dl h3{margin:0;font-family:var(--font-display);font-size:22px;font-weight:680;font-stretch:112%}
+.dl .tag{font-size:12.5px;font-weight:600;border-radius:8px;padding:2px 8px;background:var(--sc-highest);color:var(--on-surface-variant)}
+.dl.android .tag{background:var(--on-tertiary-container);color:var(--tertiary-container)}
+.dl p{margin:0;color:var(--on-surface-variant);font-size:15px;overflow-wrap:anywhere}
+.cmd{display:flex;align-items:center;gap:6px;background:var(--sc-lowest);border-radius:14px;padding:6px 6px 6px 14px;min-width:0;margin-top:auto}
+.cmd pre{margin:0;flex:1;min-width:0;overflow-x:auto;font:14px/1.6 var(--font-mono);padding:6px 0;white-space:pre}
+.cmd .ib{width:36px;height:36px;flex:none}
+.cmd .ib svg{width:20px;height:20px}
+.cmd .ib.ok{background:var(--primary);color:var(--on-primary)}
+.dl .links{display:flex;gap:8px;flex-wrap:wrap}
+.btn.sm{height:44px;padding:0 20px;font-size:15px}
+.btn.sm svg{width:20px;height:20px}
+.dl small{color:var(--on-surface-variant);font-size:13.5px}
+
+/* Reference */
+.ref{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 56px}
+@media (max-width:860px){.ref{grid-template-columns:minmax(0,1fr)}}
+.ref h3{font-family:var(--font-display);font-size:24px;font-weight:680;font-stretch:112%;margin:0 0 12px}
+.tbl{overflow-x:auto}
+.keys{width:100%;border-collapse:collapse;font-size:15px}
+.keys td{padding:10px 0;border-top:1px solid var(--outline-variant);vertical-align:top}
+.keys td:first-child{white-space:nowrap;padding-right:20px;width:1%}
+.keys kbd{font:500 13px var(--font-mono);border:1px solid var(--outline);border-bottom-width:2px;border-radius:6px;padding:1px 7px;background:var(--sc-lowest)}
+.ref p{margin:0 0 12px;color:var(--on-surface-variant);font-size:15px}
+.ref .cmd{margin-top:0}
+
+footer{margin-top:96px;background:var(--sc);transition:background-color .4s var(--ease)}
+footer .wrap{padding-block:40px calc(40px + env(safe-area-inset-bottom, 0px));display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:space-between}
+footer p{margin:0;color:var(--on-surface-variant);font-size:14px;max-width:60ch}
+footer nav{display:flex;gap:4px 20px;flex-wrap:wrap}
+footer nav a{font-weight:500;text-decoration:none}
+footer nav a:hover{text-decoration:underline}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
+</style>
+<style id="scheme"></style>
+</head>
+<body>
+
+<header class="wrap top">
+  <a class="brand" href="#top" aria-label="Kvant home">
+    <svg viewBox="8 8 112 112" aria-hidden="true">
+      <rect x="8" y="8" width="112" height="112" rx="36" fill="var(--primary)"/>
+      <path d="M28 64 q6.5 -12 13 0 t13 0 t13 0 t13 0" fill="none" stroke="var(--primary-container)" stroke-width="8" stroke-linecap="round"/>
+      <rect x="86" y="46" width="8" height="36" rx="4" fill="var(--primary-container)"/>
+    </svg>
+    Kvant
+  </a>
+  <nav aria-label="Main">
+    <a class="opt" href="#features">Features</a>
+    <a href="#download">Download</a>
+    <a href="https://github.com/proshiv85-byte/kvant">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <p class="eyebrow">Audio player for Linux and Android</p>
+    <h1>Your music, in <span class="accent">your color.</span></h1>
+    <p class="lede">Kvant is a clean, lightweight Material 3 audio player. It plays your files and folders, lets you tune how it looks, and leaves everything else out.</p>
+    <div class="cta">
+      <a class="btn filled" href="#download">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Download
+      </a>
+      <a class="btn tonal" href="https://github.com/proshiv85-byte/kvant">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2A10 10 0 0 0 8.84 21.5c.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5A10 10 0 0 0 12 2z"/></svg>
+        Source on GitHub
+      </a>
+    </div>
+    <ul class="platforms" aria-label="Available for">
+      <li>Android 8.0+</li><li>AppImage</li><li>Flatpak</li><li>Debian / Ubuntu</li><li>Fedora</li><li>Arch (AUR)</li>
+    </ul>
+  </div>
+
+  <div class="wrap">
+    <div class="stage" aria-label="Interactive preview">
+      <div class="stage-main">
+        <div class="stage-bar">
+          <div class="seg" role="group" aria-label="Show the app on">
+            <button type="button" id="os-linux" data-os="linux" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>Linux</button>
+            <button type="button" id="os-android" data-os="android" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>Android</button>
+          </div>
+          <p class="stage-note">A working mockup of the app. Press play (no sound).</p>
+        </div>
+
+        <!-- SCREENSHOTS: to show a real screenshot instead of this mockup, replace the
+             whole <div class="device"> … </div> below with, for example:
+             <img src="screenshots/linux.png" alt="Kvant on Linux" width="1440" height="960" style="border-radius:22px">
+             See website/README.md. -->
+        <div class="device" id="device" data-os="linux" data-side="left" data-queue="open">
+          <div class="titlebar"><span>Kvant</span><i></i><i></i><i></i></div>
+          <div class="statusbar"><span id="clock">9:41</span><span class="cam"></span><span class="icons"><b></b><b></b></span></div>
+          <div class="app">
+            <aside class="queue" aria-label="Queue">
+              <h3>Queue · 5 tracks</h3>
+              <div id="qlist"></div>
+            </aside>
+            <div class="now">
+              <div class="nowbar">
+                <button class="ib" type="button" id="qtoggle" aria-label="Queue"><svg viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg></button>
+                <span class="grow"></span>
+                <button class="ib rot" type="button" style="--rot:-10deg" aria-label="Open files" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 11h-3v3.75c0 1.24-1.01 2.25-2.25 2.25S8.5 17.99 8.5 16.75s1.01-2.25 2.25-2.25c.46 0 .89.14 1.25.38V11h4v2zm-3-4V3.5L18.5 9H13z"/></svg></button>
+                <button class="ib rot" type="button" style="--rot:10deg" aria-label="Open folder" tabindex="-1"><svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg></button>
+                <button class="ib rot" type="button" style="--rot:90deg" id="gosettings" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+              </div>
+              <div class="nowbody">
+                <div class="cover art" id="cover" data-a="0" role="img" aria-label="Cover art"></div>
+                <p class="ttl" id="ttl"></p>
+                <p class="sub" id="sub"></p>
+                <canvas class="seek" id="seek" aria-label="Seek" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"></canvas>
+                <div class="times"><span id="pos">0:00</span><span id="dur">0:00</span></div>
+                <div class="controls">
+                  <button class="ib tonal prev" type="button" id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+                  <button class="play" type="button" id="play" aria-label="Play">
+                    <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                    <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  </button>
+                  <button class="ib tonal next" type="button" id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+                </div>
+                <div class="vol">
+                  <button class="ib rot" type="button" id="mute" aria-label="Mute"><svg viewBox="0 0 24 24"><path id="volpath" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button>
+                  <div class="vbar" id="vbar" role="slider" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" tabindex="0"><span class="fill"></span><span class="rest"></span><span class="knob"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form class="sheet" id="settings" aria-labelledby="settings-title">
+        <h2 id="settings-title">Settings</h2>
+        <div class="field">
+          <span class="lbl">Theme</span>
+          <div class="seg full" role="group" aria-label="Theme" id="theme-seg">
+            <button type="button" id="theme-system" data-v="system" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>System</button>
+            <button type="button" id="theme-light" data-v="light" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>Light</button>
+            <button type="button" id="theme-dark" data-v="dark" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>Dark</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">Accent color</span>
+          <div class="swatches" id="swatches"></div>
+          <div class="hexrow">
+            <label for="hex"><span class="dot" aria-hidden="true"></span><input type="text" id="hex" value="#6750A4" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Accent color hex code"></label>
+            <input type="color" id="picker" value="#6750a4" aria-label="Pick any accent color">
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">Queue position</span>
+          <div class="seg full" role="group" aria-label="Queue position" id="side-seg">
+            <button type="button" id="side-left" data-v="left" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>Left</button>
+            <button type="button" id="side-right" data-v="right" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>Right</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">Progress bar</span>
+          <div class="switchrow"><span id="sq-lbl">Squiggly line</span><button type="button" class="switch" id="squiggle" role="switch" aria-checked="true" aria-labelledby="sq-lbl"></button></div>
+          <div class="range" data-k="amplitude"><div class="row"><label for="amp">Height</label><output for="amp" id="amp-o">3</output></div><input type="range" id="amp" min="1" max="8" step="0.5" value="3"></div>
+          <div class="range" data-k="wavelength"><div class="row"><label for="wl">Wavelength</label><output for="wl" id="wl-o">36</output></div><input type="range" id="wl" min="16" max="80" step="1" value="36"></div>
+          <div class="range" data-k="speed"><div class="row"><label for="spd">Speed</label><output for="spd" id="spd-o">1.0</output></div><input type="range" id="spd" min="0" max="3" step="0.1" value="1"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <section id="features" class="wrap">
+    <div class="split">
+      <div>
+        <h2 class="big">Everything it does.</h2>
+        <p class="intro">This is the whole list. Kvant opens your music and plays it, and every part of it looks and moves like Material 3.</p>
+      </div>
+      <div>
+        <ul class="feats">
+          <li><b>Files or whole folders</b><span>Play a single file, or open a folder. It's scanned recursively and becomes the queue.</span></li>
+          <li><b>A queue that stays out of the way</b><span>Put it on the left or right, or collapse it. On narrow windows it becomes a drawer.</span></li>
+          <li><b>The squiggly progress bar</b><span>It settles into a flat line when paused. Set its height, wavelength and speed, or switch it off.</span></li>
+          <li><b>One accent, a full color scheme</b><span>Light, dark or follow the system, with any accent color you like.</span></li>
+          <li><b>Drag and drop</b><span>Drop files and folders onto the window to add them to the queue.</span></li>
+          <li><b>Media keys and widgets</b><span>MPRIS on Linux for media keys, desktop media widgets and <code>playerctl</code>. Notification and lock screen controls on Android.</span></li>
+          <li><b>Open with Kvant</b><span>On Linux, opening a file from your file manager reuses the window that's already open.</span></li>
+          <li><b>Cover art</b><span>Embedded artwork, or a <code>cover.jpg</code> / <code>folder.jpg</code> next to the files.</span></li>
+        </ul>
+        <div class="lean">
+          <b>And nothing else.</b>
+          <p>Kvant has no network code at all. There's no account, no streaming service, no library database and no telemetry. On Android it doesn't even ask for internet access.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="wrap">
+    <div class="dl-head">
+      <div>
+        <h2 class="big">Download Kvant.</h2>
+        <p class="intro">Every button opens the latest release on GitHub. Pick the file for your system from the list there.</p>
+      </div>
+      <a class="btn filled" href="https://github.com/proshiv85-byte/kvant/releases/latest">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Latest release
+      </a>
+    </div>
+
+    <div class="dl-grid">
+      <article class="dl android">
+        <div style="display:grid;gap:10px;min-width:0">
+          <div class="dl-title"><h3>Android</h3><span class="tag">.apk · Android 8.0 or newer</span></div>
+          <p>Download <code>Kvant-*.apk</code> and open it on your phone. You may need to allow installing apps from your browser or file manager.</p>
+        </div>
+        <div class="links">
+          <a class="btn filled" href="https://github.com/proshiv85-byte/kvant/releases/latest">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Get the APK
+          </a>
+        </div>
+      </article>
+
+      <article class="dl">
+        <div class="dl-title"><h3>AppImage</h3><span class="tag">Any distro</span></div>
+        <p>Qt is bundled, so it also runs on older distros.</p>
+        <div class="cmd"><pre>chmod +x Kvant-*-x86_64.AppImage
+./Kvant-*-x86_64.AppImage</pre><button class="ib copy" type="button" aria-label="Copy command"></button></div>
+        <div class="links"><a class="btn tonal sm" href="https://github.com/proshiv85-byte/kvant/releases/latest">Download .AppImage</a></div>
+      </article>
+
+      <article class="dl">
+        <div class="dl-title"><h3>Flatpak</h3><span class="tag">Any distro</span></div>
+        <p>Needs the Flathub remote for the KDE runtime: <code>flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo</code></p>
+        <div class="cmd"><pre>flatpak install --user ./Kvant-*.flatpak
+flatpak run io.github.proshiv85_byte.Kvant</pre><button class="ib copy" type="button" aria-label="Copy command"></button></div>
+        <div class="links"><a class="btn tonal sm" href="https://github.com/proshiv85-byte/kvant/releases/latest">Download .flatpak</a></div>
+      </article>
+
+      <article class="dl">
+        <div class="dl-title"><h3>Debian / Ubuntu</h3><span class="tag">Debian 13, Ubuntu 26.04+</span></div>
+        <p>Older releases like Ubuntu 24.04 ship a Qt that's too old. Use the AppImage or Flatpak there.</p>
+        <div class="cmd"><pre>sudo apt install ./kvant_*_amd64.deb</pre><button class="ib copy" type="button" aria-label="Copy command"></button></div>
+        <div class="links"><a class="btn tonal sm" href="https://github.com/proshiv85-byte/kvant/releases/latest">Download .deb</a></div>
+      </article>
+
+      <article class="dl">
+        <div class="dl-title"><h3>Fedora</h3><span class="tag">.rpm</span></div>
+        <p>The file name says which Fedora it was built for (<code>fc44</code> = Fedora 44). It works on that version and newer.</p>
+        <div class="cmd"><pre>sudo dnf install ./kvant-*.rpm</pre><button class="ib copy" type="button" aria-label="Copy command"></button></div>
+        <div class="links"><a class="btn tonal sm" href="https://github.com/proshiv85-byte/kvant/releases/latest">Download .rpm</a></div>
+      </article>
+
+      <article class="dl">
+        <div class="dl-title"><h3>Arch Linux</h3><span class="tag">AUR</span></div>
+        <p>Kvant is on the AUR as <code>kvant</code>. Install it with your AUR helper.</p>
+        <div class="cmd"><pre>yay -S kvant      # or: paru -S kvant</pre><button class="ib copy" type="button" aria-label="Copy command"></button></div>
+        <div class="links"><a class="btn tonal sm" href="https://aur.archlinux.org/packages/kvant">View on the AUR</a></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="ref">
+      <div>
+        <h3>Keyboard shortcuts</h3>
+        <div class="tbl">
+          <table class="keys">
+            <tbody>
+              <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
+              <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Seek 5 seconds</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>←</kbd> <kbd>Ctrl</kbd>+<kbd>→</kbd></td><td>Previous / next track</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open files</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd></td><td>Open folder</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>,</kbd></td><td>Settings</td></tr>
+              <tr><td><kbd>Ctrl</kbd>+<kbd>Q</kbd></td><td>Quit</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3>Build from source</h3>
+        <p>Needs Qt 6.8 or newer (base, declarative, multimedia with a backend such as <code>qt6-multimedia-ffmpeg</code>), TagLib 2.0 or newer, and CMake.</p>
+        <div class="cmd"><pre>cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build
+sudo cmake --install build</pre><button class="ib copy" type="button" aria-label="Copy command"></button></div>
+        <p style="margin-top:16px">The Android app (Kotlin and Jetpack Compose, in <code>android/</code>) needs JDK 17+ and the Android SDK:</p>
+        <div class="cmd"><pre>cd android
+./gradlew assembleDebug</pre><button class="ib copy" type="button" aria-label="Copy command"></button></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Kvant is free software under the GPL-3.0-or-later license. Icons are from Google's Material Icons (Apache-2.0).</p>
+    <nav aria-label="Project">
+      <a href="https://github.com/proshiv85-byte/kvant">GitHub repository</a>
+      <a href="https://github.com/proshiv85-byte/kvant/releases">Releases</a>
+      <a href="https://github.com/proshiv85-byte/kvant/issues">Report a bug</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+// Port of src/theme.cpp: OKLCH "tonal spot" scheme from one seed color.
+const Palette = (() => {
+  const toLin = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const fromLin = c => c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+  function oklabToLinear(L, a, b) {
+    const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    const l = l_ ** 3, m = m_ ** 3, s = s_ ** 3;
+    return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+           -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+           -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s];
+  }
+  function linearToOklch([r, g, b]) {
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
+    const A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+    const B = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+    return [L, Math.hypot(A, B), Math.atan2(B, A)];
+  }
+  const e = 1e-4;
+  const inGamut = c => c.every(v => v >= -e && v <= 1 + e);
+  function lstar([r, g, b]) {
+    const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return y > 216 / 24389 ? 116 * Math.cbrt(y) - 16 : y * 24389 / 27;
+  }
+  function clamped(L, maxC, h) {
+    const at = C => oklabToLinear(L, C * Math.cos(h), C * Math.sin(h));
+    const c = at(maxC);
+    if (inGamut(c)) return c;
+    let lo = 0, hi = maxC;
+    for (let i = 0; i < 18; i++) { const mid = (lo + hi) / 2; if (inGamut(at(mid))) lo = mid; else hi = mid; }
+    return at(lo);
+  }
+  const hex = c => '#' + c.map(v => Math.round(Math.min(1, Math.max(0, fromLin(Math.min(1, Math.max(0, v))))) * 255)
+    .toString(16).padStart(2, '0')).join('').toUpperCase();
+  function tone(h, chroma, t) {
+    if (t <= 0) return '#000000';
+    if (t >= 100) return '#FFFFFF';
+    let lo = 0, hi = 1, c;
+    for (let i = 0; i < 22; i++) { const mid = (lo + hi) / 2; c = clamped(mid, chroma, h); if (lstar(c) < t) lo = mid; else hi = mid; }
+    return hex(c);
+  }
+  function scheme(seed, dark) {
+    const n = parseInt(seed.slice(1), 16);
+    const [, C, h] = linearToOklch([n >> 16, (n >> 8) & 255, n & 255].map(v => toLin(v / 255)));
+    const cP = Math.min(0.15, Math.max(0.10, C));
+    const g = C < 0.02 ? 0 : 1; // keep neutral seeds neutral
+    const P = t => tone(h, cP * g, t), S = t => tone(h, 0.053 * g, t);
+    const T = t => tone(h + Math.PI / 3, 0.08 * g, t), N = t => tone(h, 0.012 * g, t), NV = t => tone(h, 0.025 * g, t);
+    return dark ? {
+      'primary': P(80), 'on-primary': P(20), 'primary-container': P(30), 'on-primary-container': P(90),
+      'secondary-container': S(30), 'on-secondary-container': S(90),
+      'tertiary-container': T(30), 'on-tertiary-container': T(90),
+      'surface': N(6), 'on-surface': N(90), 'on-surface-variant': NV(80),
+      'sc-lowest': N(4), 'sc-low': N(10), 'sc': N(12), 'sc-high': N(17), 'sc-highest': N(22),
+      'outline': NV(60), 'outline-variant': NV(30),
+    } : {
+      'primary': P(40), 'on-primary': P(100), 'primary-container': P(90), 'on-primary-container': P(10),
+      'secondary-container': S(90), 'on-secondary-container': S(10),
+      'tertiary-container': T(90), 'on-tertiary-container': T(10),
+      'surface': N(98), 'on-surface': N(10), 'on-surface-variant': NV(30),
+      'sc-lowest': N(100), 'sc-low': N(96), 'sc': N(94), 'sc-high': N(92), 'sc-highest': N(90),
+      'outline': NV(50), 'outline-variant': NV(80),
+    };
+  }
+  const vars = s => Object.entries(s).map(([k, v]) => `--${k}:${v}`).join(';');
+  function css(seed) {
+    const l = vars(scheme(seed, false)), d = vars(scheme(seed, true));
+    return `:root{${l}}\n@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${d};color-scheme:dark}}\n:root[data-theme="dark"]{${d};color-scheme:dark}`;
+  }
+  return { css };
+})();
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k) { try { return localStorage.getItem('kvant-site:' + k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem('kvant-site:' + k, v); } catch {} },
+  };
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Same swatches as qml/SettingsSheet.qml
+  const SWATCHES = ['#6750A4', '#0061A4', '#006A6A', '#386A20', '#7C5800', '#9C4400', '#B3261E', '#984061'];
+  const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7.59 19.59 6.17z"/></svg>';
+  const COPY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+
+  // Example queue: public-domain pieces, shown only in the mockup.
+  const TRACKS = [
+    { t: 'Gymnopédie No. 1', a: 'Erik Satie', al: 'Trois Gymnopédies', d: 205 },
+    { t: 'Clair de lune', a: 'Claude Debussy', al: 'Suite bergamasque', d: 302 },
+    { t: 'Nocturne in E-flat major, Op. 9 No. 2', a: 'Frédéric Chopin', al: 'Nocturnes', d: 271 },
+    { t: 'Arabesque No. 1', a: 'Claude Debussy', al: 'Deux Arabesques', d: 248 },
+    { t: 'Gnossienne No. 1', a: 'Erik Satie', al: 'Gnossiennes', d: 223 },
+  ];
+
+  const S = {
+    accent: '#6750A4', theme: 'system', side: 'left', os: 'linux', queue: 'open',
+    squiggle: true, amplitude: 3, wavelength: 36, speed: 1,
+    track: 0, pos: 64, playing: false, volume: 0.7, lastVol: 0.7,
+  };
+
+  const device = $('device');
+  const schemeEl = $('scheme');
+  const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+  // ---------- Color ----------
+  function setAccent(hex, save = true) {
+    hex = hex.toUpperCase();
+    if (!/^#[0-9A-F]{6}$/.test(hex)) return;
+    S.accent = hex;
+    schemeEl.textContent = Palette.css(hex);
+    $('hex').value = hex;
+    $('picker').value = hex.toLowerCase();
+    document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === hex)));
+    if (save) store.set('accent', hex);
+    refreshColors();
+  }
+  function setTheme(v, save = true) {
+    S.theme = v;
+    if (v === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', v);
+    pressIn('theme-seg', v);
+    if (save) store.set('theme', v);
+    refreshColors();
+  }
+  function pressIn(groupId, v) {
+    document.querySelectorAll(`#${groupId} button`).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  }
+
+  const sw = $('swatches');
+  SWATCHES.forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'sw'; b.dataset.c = c; b.style.background = c;
+    b.setAttribute('aria-label', 'Accent ' + c); b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = CHECK;
+    b.addEventListener('click', () => setAccent(c));
+    sw.appendChild(b);
+  });
+  $('hex').addEventListener('input', e => {
+    let v = e.target.value.trim();
+    if (!v.startsWith('#')) v = '#' + v;
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) setAccent(v);
+  });
+  $('hex').addEventListener('blur', e => { e.target.value = S.accent; });
+  $('picker').addEventListener('input', e => setAccent(e.target.value));
+  $('theme-seg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTheme(b.dataset.v); });
+  $('settings').addEventListener('submit', e => e.preventDefault());
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshColors);
+
+  // ---------- Layout options ----------
+  $('side-seg').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    S.side = b.dataset.v; device.dataset.side = S.side; pressIn('side-seg', S.side); store.set('side', S.side);
+  });
+  document.querySelectorAll('.stage-bar .seg button').forEach(b => b.addEventListener('click', () => {
+    S.os = b.dataset.os; device.dataset.os = S.os;
+    document.querySelectorAll('.stage-bar .seg button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    requestAnimationFrame(sizeCanvas);
+    setTimeout(sizeCanvas, 520);
+  }));
+  $('qtoggle').addEventListener('click', () => {
+    S.queue = S.queue === 'open' ? 'closed' : 'open';
+    device.dataset.queue = S.queue;
+    setTimeout(sizeCanvas, 470);
+  });
+  $('gosettings').addEventListener('click', () => {
+    $('settings').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+    $('theme-system').focus({ preventScroll: true });
+  });
+
+  // ---------- Progress bar options ----------
+  const sqBtn = $('squiggle');
+  sqBtn.addEventListener('click', () => {
+    S.squiggle = !S.squiggle;
+    sqBtn.setAttribute('aria-checked', String(S.squiggle));
+    document.querySelectorAll('.range').forEach(r => r.classList.toggle('off', !S.squiggle));
+  });
+  [['amp', 'amplitude', v => String(v)], ['wl', 'wavelength', v => String(v)], ['spd', 'speed', v => v.toFixed(1)]].forEach(([id, key, f]) => {
+    const el = $(id), out = $(id + '-o');
+    const upd = () => {
+      S[key] = parseFloat(el.value);
+      out.textContent = f(S[key]);
+      el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
+    };
+    el.addEventListener('input', upd); upd();
+  });
+
+  // ---------- Queue + player ----------
+  const qlist = $('qlist');
+  TRACKS.forEach((tr, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'qitem';
+    b.innerHTML = `<span class="qart art" data-a="${i}"></span><span class="qtext"><b></b><small></small></span>`;
+    b.querySelector('b').textContent = tr.t;
+    b.querySelector('small').textContent = tr.a;
+    b.addEventListener('click', () => { loadTrack(i); setPlaying(true); });
+    qlist.appendChild(b);
+  });
+  function loadTrack(i, pos = 0) {
+    S.track = (i + TRACKS.length) % TRACKS.length; S.pos = pos;
+    const tr = TRACKS[S.track];
+    $('ttl').textContent = tr.t;
+    $('sub').textContent = `${tr.a}  ·  ${tr.al}`;
+    $('dur').textContent = fmt(tr.d);
+    $('cover').dataset.a = String(S.track);
+    $('cover').setAttribute('aria-label', `Cover art for ${tr.al}`);
+    qlist.querySelectorAll('.qitem').forEach((b, j) => b.setAttribute('aria-current', String(j === S.track)));
+  }
+  function setPlaying(p) {
+    S.playing = p;
+    $('play').classList.toggle('on', p);
+    $('play').setAttribute('aria-label', p ? 'Pause' : 'Play');
+    device.classList.toggle('paused', !p);
+  }
+  $('play').addEventListener('click', () => setPlaying(!S.playing));
+  $('prev').addEventListener('click', () => loadTrack(S.pos > 3 ? S.track : S.track - 1));
+  $('next').addEventListener('click', () => loadTrack(S.track + 1));
+
+  // Volume (M3 slider look, qml/components/M3Slider.qml)
+  const VOL_ON = 'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z';
+  const VOL_OFF = 'M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z';
+  const vbar = $('vbar');
+  function drawVol() {
+    const v = S.volume, gap = 6;
+    vbar.querySelector('.knob').style.left = `calc(${v * 100}% )`;
+    vbar.querySelector('.fill').style.width = `max(0px, calc(${v * 100}% - ${gap}px))`;
+    vbar.querySelector('.rest').style.width = `max(0px, calc(${(1 - v) * 100}% - ${gap}px))`;
+    vbar.setAttribute('aria-valuenow', String(Math.round(v * 100)));
+    $('volpath').setAttribute('d', v > 0 ? VOL_ON : VOL_OFF);
+    $('mute').setAttribute('aria-label', v > 0 ? 'Mute' : 'Unmute');
+  }
+  function dragOn(el, fn) {
+    el.addEventListener('pointerdown', e => {
+      el.setPointerCapture(e.pointerId);
+      const r = el.getBoundingClientRect();
+      const at = ev => Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
+      fn(at(e), false);
+      const move = ev => fn(at(ev), false);
+      const up = ev => { fn(at(ev), true); el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); };
+      el.addEventListener('pointermove', move); el.addEventListener('pointerup', up);
+    });
+  }
+  dragOn(vbar, v => { S.volume = v; drawVol(); });
+  vbar.addEventListener('keydown', e => {
+    const d = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 0.05 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -0.05 : 0;
+    if (d) { e.preventDefault(); S.volume = Math.max(0, Math.min(1, S.volume + d)); drawVol(); }
+  });
+  $('mute').addEventListener('click', () => {
+    if (S.volume > 0) { S.lastVol = S.volume; S.volume = 0; } else S.volume = S.lastVol || 1;
+    drawVol();
+  });
+
+  // ---------- Squiggly seek bar: port of src/wavyprogress.cpp ----------
+  const cv = $('seek'), ctx = cv.getContext('2d');
+  let W = 0, H = 40, dpr = 1, colors = { active: '#6750A4', inactive: '#E4DFFF' };
+  let amp = 0, phase = 0, drag = null, hover = false, thumbH = 24;
+  function refreshColors() {
+    const cs = getComputedStyle(document.documentElement);
+    colors.active = cs.getPropertyValue('--primary').trim();
+    colors.inactive = cs.getPropertyValue('--secondary-container').trim();
+  }
+  function sizeCanvas() {
+    const r = cv.getBoundingClientRect();
+    dpr = window.devicePixelRatio || 1;
+    W = r.width; H = r.height;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  }
+  function paint() {
+    if (!W) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const value = drag !== null ? drag : S.pos / TRACKS[S.track].d;
+    const stroke = 4, half = stroke / 2, gap = 6, cy = H / 2;
+    const thumbW = drag !== null ? 2 : 4;
+    const start = half, end = W - half, thumbX = start + (end - start) * value;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.lineWidth = stroke;
+
+    const activeEnd = thumbX - thumbW / 2 - gap - half;
+    if (activeEnd > start) {
+      const k = 2 * Math.PI / S.wavelength, ramp = S.wavelength / 2;
+      const y = x => cy + amp * Math.min(1, (x - start) / ramp) * Math.sin(k * x - 2 * Math.PI * phase);
+      ctx.beginPath(); ctx.moveTo(start, y(start));
+      for (let x = start + 1; x < activeEnd; x += 1) ctx.lineTo(x, y(x));
+      ctx.lineTo(activeEnd, y(activeEnd));
+      ctx.strokeStyle = colors.active; ctx.stroke();
+    }
+    const inactiveStart = thumbX + thumbW / 2 + gap + half;
+    if (inactiveStart < end) {
+      ctx.beginPath(); ctx.moveTo(inactiveStart, cy); ctx.lineTo(end, cy);
+      ctx.strokeStyle = colors.inactive; ctx.stroke();
+      if (end - inactiveStart > stroke * 2) {
+        ctx.beginPath(); ctx.arc(end - half, cy, stroke / 4 + 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = colors.active; ctx.fill();
+      }
+    }
+    ctx.fillStyle = colors.active;
+    ctx.beginPath();
+    ctx.roundRect(thumbX - thumbW / 2, cy - thumbH / 2, thumbW, thumbH, thumbW / 2);
+    ctx.fill();
+  }
+  dragOn(cv, (v, done) => {
+    drag = v;
+    if (done) { S.pos = v * TRACKS[S.track].d; drag = null; }
+  });
+  cv.addEventListener('pointerenter', () => hover = true);
+  cv.addEventListener('pointerleave', () => hover = false);
+  cv.addEventListener('keydown', e => {
+    const d = e.key === 'ArrowRight' ? 5 : e.key === 'ArrowLeft' ? -5 : 0;
+    if (d) { e.preventDefault(); S.pos = Math.max(0, Math.min(TRACKS[S.track].d, S.pos + d)); }
+    if (e.key === ' ') { e.preventDefault(); setPlaying(!S.playing); }
+  });
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (S.playing) {
+      S.pos += dt;
+      if (S.pos >= TRACKS[S.track].d) loadTrack(S.track + 1);
+    }
+    // Amplitude eases in and out (450 ms OutCubic in the app); phase advances per frame.
+    const target = S.squiggle && S.playing ? S.amplitude : 0;
+    amp += (target - amp) * Math.min(1, dt * 9);
+    if (Math.abs(target - amp) < 0.01) amp = target;
+    if (amp > 0 && !reduced) phase = (phase + dt * S.speed) % 1;
+    const th = drag !== null || hover ? 28 : 24;
+    thumbH += (th - thumbH) * Math.min(1, dt * 20);
+    paint();
+    $('pos').textContent = fmt(drag !== null ? drag * TRACKS[S.track].d : S.pos);
+    cv.setAttribute('aria-valuenow', String(Math.round(S.pos / TRACKS[S.track].d * 100)));
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Copy buttons ----------
+  document.querySelectorAll('.copy').forEach(b => {
+    b.innerHTML = COPY;
+    b.addEventListener('click', () => {
+      const pre = b.parentElement.querySelector('pre');
+      const text = pre.textContent.replace(/\s+# or:.*$/m, '');
+      const done = () => { b.innerHTML = CHECK; b.classList.add('ok'); b.setAttribute('aria-label', 'Copied');
+        setTimeout(() => { b.innerHTML = COPY; b.classList.remove('ok'); b.setAttribute('aria-label', 'Copy command'); }, 1600); };
+      const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+      try { navigator.clipboard.writeText(text).then(done, fallback); } catch { fallback(); }
+    });
+  });
+
+  // ---------- Start ----------
+  const savedTheme = store.get('theme');
+  setTheme(['system', 'light', 'dark'].includes(savedTheme) ? savedTheme : 'system', false);
+  setAccent(store.get('accent') || '#6750A4', false);
+  const savedSide = store.get('side');
+  if (savedSide === 'right') { S.side = 'right'; device.dataset.side = 'right'; pressIn('side-seg', 'right'); }
+  loadTrack(0, 64);
+  setPlaying(true);
+  drawVol();
+  sizeCanvas();
+  new ResizeObserver(sizeCanvas).observe(cv);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
