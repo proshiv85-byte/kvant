@@ -44,6 +44,14 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.0" date="2026-10-15">
+      <description>
+        <ul>
+          <li>Shuffle, repeat all and repeat one, also over MPRIS</li>
+          <li>Picks up where you left off: the queue, track and position are restored on start</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-10-14"/>
   </releases>
 </component>
