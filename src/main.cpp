@@ -102,8 +102,11 @@ int main(int argc, char *argv[])
         });
     }
 
-    if (!paths.isEmpty())
+    if (paths.isEmpty())
+        player.restoreSession();
+    else
         player.openPaths(paths, true);
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &player, &Player::saveSession);
 
     return app.exec();
 }

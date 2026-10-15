@@ -18,6 +18,8 @@ progress line, a morphing play button and a full color scheme generated from one
 - Play a single file, or open a folder (it's scanned recursively) as a queue
 - Queue panel you can put on the left or right, or collapse
 - Shuffle, repeat all and repeat one. They're remembered between runs
+- Picks up where you left off: the queue, track and position are restored (paused) when you start Kvant again.
+  On Android, a headset or Bluetooth play button resumes it even when the app is closed
 - Squiggly progress bar that settles into a flat line when paused. You can set its height, wavelength and speed, or switch it off
 - Light / Dark / follow system theme, with any accent color
 - Drag & drop files and folders onto the window to add them to the queue

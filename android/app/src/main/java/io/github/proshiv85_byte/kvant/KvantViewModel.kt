@@ -3,6 +3,7 @@ package io.github.proshiv85_byte.kvant
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -119,17 +120,27 @@ class KvantViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun openFiles(uris: List<Uri>, replace: Boolean) {
         if (uris.isEmpty()) return
+        uris.forEach(::keepAccess)
         viewModelScope.launch {
             add(withContext(Dispatchers.IO) { Tracks.files(app, uris) }, replace)
         }
     }
 
     fun openFolder(tree: Uri, replace: Boolean) {
+        keepAccess(tree)
         viewModelScope.launch {
             val files = withContext(Dispatchers.IO) { runCatching { Tracks.scanTree(app, tree) }.getOrDefault(emptyList()) }
             if (files.isEmpty()) _errors.tryEmit(app.getString(R.string.error_no_audio))
             else add(files, replace)
         }
+    }
+
+    /**
+     * Keeps read access after the app restarts, so the queue can be restored. Files
+     * shared from other apps ("Open with") can't be kept, so they just won't come back.
+     */
+    private fun keepAccess(uri: Uri) {
+        runCatching { app.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
     }
 
     private suspend fun add(files: List<TrackFile>, replace: Boolean) {

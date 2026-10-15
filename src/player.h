@@ -5,6 +5,7 @@
 
 #include <QMediaPlayer>
 #include <QObject>
+#include <QTimer>
 #include <QUrl>
 #include <QtQml/qqmlregistration.h>
 
@@ -69,6 +70,11 @@ public:
     Q_INVOKABLE void open(const QList<QUrl> &urls, bool replace);
     void openPaths(const QStringList &paths, bool replace);
 
+    // The queue, current track and position are saved as they change and restored
+    // (paused) on the next start.
+    void restoreSession();
+    void saveSession();
+
     Q_INVOKABLE void playIndex(int row);
     Q_INVOKABLE void play();
     Q_INVOKABLE void pause();
@@ -116,4 +122,8 @@ private:
     RepeatMode m_repeat = RepeatOff;
     // Play order (queue item IDs) while shuffling. The queue itself keeps its order.
     QList<quint64> m_order;
+    QTimer m_saveTimer;      // batches saves after queue/track changes
+    QTimer m_positionTimer;  // saves the position now and then while playing
+    bool m_queueDirty = false;
+    qint64 m_pendingSeek = -1; // restored position, applied once the track has loaded
 };

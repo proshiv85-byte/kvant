@@ -5,6 +5,10 @@
 #include <QAudioOutput>
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QSaveFile>
+#include <QSettings>
 #include <QJSEngine>
 #include <QPointer>
 #include <QRandomGenerator>
@@ -39,8 +43,25 @@ Player::Player(CoverProvider *covers, QObject *parent)
     connect(&m_queue, &QueueModel::countChanged, this, [this] {
         syncOrder();
         emit navigationChanged();
+        m_queueDirty = true;
+        m_saveTimer.start();
+    });
+
+    m_saveTimer.setSingleShot(true);
+    m_saveTimer.setInterval(1000);
+    connect(&m_saveTimer, &QTimer::timeout, this, &Player::saveSession);
+    m_positionTimer.setInterval(5000);
+    connect(&m_positionTimer, &QTimer::timeout, this, &Player::saveSession);
+    connect(this, &Player::playingChanged, this, [this] {
+        if (playing()) {
+            m_positionTimer.start();
+        } else {
+            m_positionTimer.stop();
+            m_saveTimer.start(); // remember where it was paused
+        }
     });
     connect(&m_queue, &QueueModel::currentIndexChanged, this, [this] {
+        m_saveTimer.start();
         emit navigationChanged();
         emit trackChanged();
         // The current track was removed from the queue (or the queue was cleared).
@@ -234,6 +255,7 @@ void Player::playIndex(int row)
 
 void Player::loadCurrent(bool autoplay)
 {
+    m_pendingSeek = -1;
     const int row = m_queue.currentIndex();
     m_info = m_queue.info(row);
     m_player.setSource(QUrl::fromLocalFile(m_queue.path(row)));
@@ -292,6 +314,10 @@ void Player::seek(qint64 ms)
 
 void Player::onStatusChanged(QMediaPlayer::MediaStatus status)
 {
+    if (status == QMediaPlayer::LoadedMedia && m_pendingSeek > 0) {
+        m_player.setPosition(m_pendingSeek);
+        m_pendingSeek = -1;
+    }
     if (status != QMediaPlayer::EndOfMedia)
         return;
     const int row = m_repeat == RepeatOne ? m_queue.currentIndex() : stepFrom(1, m_repeat == RepeatAll);
@@ -303,6 +329,70 @@ void Player::onStatusChanged(QMediaPlayer::MediaStatus status)
     } else {
         playIndex(row);
     }
+}
+
+namespace {
+
+QString queueFile()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/queue.json");
+}
+
+} // namespace
+
+// The queue goes to its own file, written only when it changes. The current track and
+// position are small and change often, so they live in the settings.
+void Player::saveSession()
+{
+    m_saveTimer.stop();
+    if (m_queueDirty) {
+        QJsonArray paths;
+        for (int row = 0; row < m_queue.rowCount(); ++row)
+            paths.append(m_queue.path(row));
+        QDir().mkpath(QFileInfo(queueFile()).path());
+        QSaveFile file(queueFile());
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write(QJsonDocument(paths).toJson(QJsonDocument::Compact));
+            if (file.commit())
+                m_queueDirty = false;
+        }
+    }
+    QSettings settings;
+    settings.setValue(QStringLiteral("session/current"), currentPath());
+    settings.setValue(QStringLiteral("session/position"), m_pendingSeek > 0 ? m_pendingSeek : position());
+}
+
+void Player::restoreSession()
+{
+    QFile file(queueFile());
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+    const QSettings settings;
+    const QString current = settings.value(QStringLiteral("session/current")).toString();
+    const qint64 pos = settings.value(QStringLiteral("session/position")).toLongLong();
+
+    // Leave out files that were deleted or moved since.
+    QStringList files;
+    int row = -1;
+    for (const QJsonValue &v : QJsonDocument::fromJson(file.readAll()).array()) {
+        const QString path = v.toString();
+        if (!QFileInfo(path).isFile())
+            continue;
+        if (row < 0 && path == current)
+            row = int(files.size());
+        files << path;
+    }
+    if (files.isEmpty())
+        return;
+
+    m_queue.replace(files);
+    m_queue.setCurrentIndex(row < 0 ? 0 : row);
+    if (m_shuffle)
+        reshuffle();
+    loadCurrent(false);
+    if (row >= 0)
+        m_pendingSeek = pos;
+    m_queueDirty = false;
 }
 
 void Player::updateCover()

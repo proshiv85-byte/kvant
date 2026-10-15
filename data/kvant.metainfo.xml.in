@@ -18,6 +18,7 @@
       <li>Play a single file, or open a folder as a queue</li>
       <li>Queue panel on the left or right</li>
       <li>Shuffle, repeat all and repeat one</li>
+      <li>Picks up where you left off: the queue, track and position are restored on start</li>
       <li>Light, dark or system theme with any accent color</li>
       <li>Adjustable squiggly progress bar</li>
       <li>Drag and drop, media keys and desktop media controls (MPRIS)</li>
