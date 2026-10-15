@@ -139,8 +139,15 @@ Item {
             RowLayout {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 12
-                spacing: 16
+                spacing: parent.width >= 360 ? 16 : 6
 
+                IconButton {
+                    iconName: "shuffle"
+                    hoverNudge: -2
+                    variant: Player.shuffle ? "tonal" : "standard"
+                    tip: Player.shuffle ? qsTr("Shuffle on (Ctrl+S)") : qsTr("Shuffle off (Ctrl+S)")
+                    onClicked: Player.shuffle = !Player.shuffle
+                }
                 IconButton {
                     iconName: "previous"
                     hoverNudge: -4
@@ -164,6 +171,15 @@ Item {
                     tip: qsTr("Next")
                     enabled: Player.canNext
                     onClicked: Player.next()
+                }
+                IconButton {
+                    iconName: Player.repeat === Player.RepeatOne ? "repeatOne" : "repeat"
+                    hoverRotation: 180
+                    variant: Player.repeat === Player.RepeatOff ? "standard" : "tonal"
+                    tip: Player.repeat === Player.RepeatAll ? qsTr("Repeat all (Ctrl+R)")
+                       : Player.repeat === Player.RepeatOne ? qsTr("Repeat one (Ctrl+R)")
+                       : qsTr("Repeat off (Ctrl+R)")
+                    onClicked: Player.repeat = (Player.repeat + 1) % 3 // off → all → one
                 }
             }
 

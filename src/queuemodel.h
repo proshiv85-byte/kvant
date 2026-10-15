@@ -35,6 +35,7 @@ public:
     QString path(int row) const;
     TrackInfo info(int row) const;
     quint64 id(int row) const;
+    int row(quint64 id) const; // -1 if it's not in the queue
 
 signals:
     void countChanged();

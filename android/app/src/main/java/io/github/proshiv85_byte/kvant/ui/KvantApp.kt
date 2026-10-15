@@ -128,6 +128,8 @@ fun KvantApp(vm: KvantViewModel) {
                     toggle = vm::toggle,
                     next = vm::next,
                     previous = vm::previous,
+                    toggleShuffle = vm::toggleShuffle,
+                    cycleRepeat = vm::cycleRepeat,
                     seek = vm::seek,
                 )
 

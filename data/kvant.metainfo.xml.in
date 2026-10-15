@@ -17,11 +17,22 @@
     <ul>
       <li>Play a single file, or open a folder as a queue</li>
       <li>Queue panel on the left or right</li>
+      <li>Shuffle, repeat all and repeat one</li>
       <li>Light, dark or system theme with any accent color</li>
       <li>Adjustable squiggly progress bar</li>
       <li>Drag and drop, media keys and desktop media controls (MPRIS)</li>
     </ul>
   </description>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Playing a folder, light theme</caption>
+      <image>https://raw.githubusercontent.com/proshiv85-byte/kvant/main/docs/screenshots/desktop-light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Dark theme with a teal accent and the queue on the right</caption>
+      <image>https://raw.githubusercontent.com/proshiv85-byte/kvant/main/docs/screenshots/desktop-dark.png</image>
+    </screenshot>
+  </screenshots>
   <launchable type="desktop-id">@KVANT_APP_ID@.desktop</launchable>
   <url type="homepage">https://github.com/proshiv85-byte/kvant</url>
   <url type="bugtracker">https://github.com/proshiv85-byte/kvant/issues</url>

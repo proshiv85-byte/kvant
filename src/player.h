@@ -32,8 +32,13 @@ class Player : public QObject
     Q_PROPERTY(QString coverSource READ coverSource NOTIFY coverChanged)
     Q_PROPERTY(bool canNext READ canNext NOTIFY navigationChanged)
     Q_PROPERTY(bool canPrevious READ canPrevious NOTIFY navigationChanged)
+    Q_PROPERTY(bool shuffle READ shuffle WRITE setShuffle NOTIFY shuffleChanged)
+    Q_PROPERTY(RepeatMode repeat READ repeat WRITE setRepeat NOTIFY repeatChanged)
 
 public:
+    enum RepeatMode { RepeatOff, RepeatAll, RepeatOne };
+    Q_ENUM(RepeatMode)
+
     Player(CoverProvider *covers, QObject *parent = nullptr);
     static Player *create(QQmlEngine *, QJSEngine *);
     static inline Player *instance = nullptr;
@@ -55,6 +60,10 @@ public:
     quint64 currentId() const { return m_queue.id(m_queue.currentIndex()); }
     bool canNext() const;
     bool canPrevious() const;
+    bool shuffle() const { return m_shuffle; }
+    void setShuffle(bool on);
+    RepeatMode repeat() const { return m_repeat; }
+    void setRepeat(RepeatMode mode);
 
     // Replace the queue (and start playing) or append to it.
     Q_INVOKABLE void open(const QList<QUrl> &urls, bool replace);
@@ -80,6 +89,8 @@ signals:
     void metadataChanged();
     void coverChanged();
     void navigationChanged();
+    void shuffleChanged();
+    void repeatChanged();
     // Emitted on user seeks (for MPRIS "Seeked").
     void seeked(qint64 ms);
     void errorOccurred(const QString &message);
@@ -88,6 +99,10 @@ private:
     void loadCurrent(bool autoplay);
     void updateCover();
     void onStatusChanged(QMediaPlayer::MediaStatus status);
+    // Row of the track `dir` steps away in play order, or -1. `wrap` goes past the ends.
+    int stepFrom(int dir, bool wrap) const;
+    void reshuffle();
+    void syncOrder();
 
     QMediaPlayer m_player;
     QAudioOutput *m_output;
@@ -97,4 +112,8 @@ private:
     QString m_coverSource;
     QString m_coverFile;
     int m_coverGeneration = 0;
+    bool m_shuffle = false;
+    RepeatMode m_repeat = RepeatOff;
+    // Play order (queue item IDs) while shuffling. The queue itself keeps its order.
+    QList<quint64> m_order;
 };

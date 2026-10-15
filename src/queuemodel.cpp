@@ -2,6 +2,7 @@
 #include "queuemodel.h"
 
 #include <QFileInfo>
+#include <algorithm>
 #include <QPointer>
 #include <QtConcurrent/QtConcurrentRun>
 
@@ -125,6 +126,14 @@ TrackInfo QueueModel::info(int row) const
 quint64 QueueModel::id(int row) const
 {
     return row >= 0 && row < m_items.size() ? m_items.at(row).id : 0;
+}
+
+int QueueModel::row(quint64 id) const
+{
+    // IDs only grow and rows keep their order, so the list is sorted by ID.
+    const auto it = std::lower_bound(m_items.cbegin(), m_items.cend(), id,
+                                     [](const Item &item, quint64 v) { return item.id < v; });
+    return it != m_items.cend() && it->id == id ? int(it - m_items.cbegin()) : -1;
 }
 
 void QueueModel::loadInfo(const QList<Item> &items)

@@ -3,14 +3,27 @@
 A clean, lightweight audio player for Linux and Android with a Material 3 look: the squiggly
 progress line, a morphing play button and a full color scheme generated from one accent color.
 
+<p align="center">
+  <img src="docs/screenshots/desktop-light.png" alt="Kvant on Linux, light theme" width="49%">
+  <img src="docs/screenshots/desktop-dark.png" alt="Kvant on Linux, dark theme with a teal accent" width="49%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/android-light.png" alt="Kvant on Android, light theme" width="24%">
+  <img src="docs/screenshots/android-dark.png" alt="Kvant on Android, dark theme" width="24%">
+  <img src="docs/screenshots/android-media-card.png" alt="Android media controls with shuffle and repeat" width="48%">
+</p>
+
 ## Features
 
 - Play a single file, or open a folder (it's scanned recursively) as a queue
 - Queue panel you can put on the left or right, or collapse
+- Shuffle, repeat all and repeat one. They're remembered between runs
 - Squiggly progress bar that settles into a flat line when paused. You can set its height, wavelength and speed, or switch it off
 - Light / Dark / follow system theme, with any accent color
 - Drag & drop files and folders onto the window to add them to the queue
-- MPRIS support: media keys, desktop media widgets, `playerctl`
+- MPRIS support: media keys, desktop media widgets, `playerctl` (including shuffle and loop)
+- On Android: notification and lock screen controls with shuffle and repeat buttons. These are also
+  what the phone's "island" widgets show (Samsung's Now Bar, Xiaomi's Super Island and similar)
 - Single instance: "Open with Kvant" in a file manager reuses the open window
 - Embedded cover art, or `cover.jpg` / `folder.jpg` next to the files
 
@@ -97,6 +110,8 @@ cd android
 | Space | Play / pause |
 | ← / → | Seek 5 s |
 | Ctrl+← / Ctrl+→ | Previous / next track |
+| Ctrl+S | Shuffle on / off |
+| Ctrl+R | Repeat: off → all → one |
 | Ctrl+O | Open files |
 | Ctrl+Shift+O | Open folder |
 | Ctrl+, | Settings |

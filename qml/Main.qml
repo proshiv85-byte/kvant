@@ -50,6 +50,8 @@ ApplicationWindow {
         property real wavelength: 36
         property real speed: 1
         property real volume: 1
+        property bool shuffle: false
+        property int repeat: 0 // Player.RepeatOff
     }
 
     Binding {
@@ -64,10 +66,16 @@ ApplicationWindow {
                || (settings.themeMode === 0 && Qt.styleHints.colorScheme === Qt.ColorScheme.Dark)
     }
 
-    Component.onCompleted: Player.volume = settings.volume
+    Component.onCompleted: {
+        Player.volume = settings.volume
+        Player.shuffle = settings.shuffle
+        Player.repeat = settings.repeat
+    }
     Connections {
         target: Player
         function onVolumeChanged() { settings.volume = Player.volume }
+        function onShuffleChanged() { settings.shuffle = Player.shuffle }
+        function onRepeatChanged() { settings.repeat = Player.repeat }
         function onErrorOccurred(message) { snackbar.show(message) }
     }
 
@@ -259,6 +267,8 @@ ApplicationWindow {
     Shortcut { sequence: "Left"; onActivated: Player.seek(Player.position - 5000) }
     Shortcut { sequence: "Ctrl+Right"; onActivated: Player.next() }
     Shortcut { sequence: "Ctrl+Left"; onActivated: Player.previous() }
+    Shortcut { sequence: "Ctrl+S"; onActivated: Player.shuffle = !Player.shuffle }
+    Shortcut { sequence: "Ctrl+R"; onActivated: Player.repeat = (Player.repeat + 1) % 3 } // off → all → one
     Shortcut { sequences: [StandardKey.Open]; onActivated: window.openFiles(true) }
     Shortcut { sequence: "Ctrl+Shift+O"; onActivated: window.openFolder(true) }
     Shortcut { sequence: "Ctrl+,"; onActivated: settingsSheet.open() }

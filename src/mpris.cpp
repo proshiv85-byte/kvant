@@ -85,6 +85,8 @@ MprisPlayer::MprisPlayer(Player *player, QObject *parent)
         notify({"CanGoNext", "CanGoPrevious", "CanPlay", "CanPause", "CanSeek", "PlaybackStatus"});
     });
     connect(player, &Player::seekableChanged, this, [this] { notify({"CanSeek"}); });
+    connect(player, &Player::shuffleChanged, this, [this] { notify({"Shuffle"}); });
+    connect(player, &Player::repeatChanged, this, [this] { notify({"LoopStatus"}); });
     connect(player, &Player::seeked, this, [this](qint64 ms) { emit Seeked(ms * 1000); });
 }
 
@@ -127,6 +129,27 @@ bool MprisPlayer::canGoNext() const { return m_player->canNext(); }
 bool MprisPlayer::canGoPrevious() const { return m_player->canPrevious(); }
 bool MprisPlayer::canPlay() const { return m_player->queue()->rowCount() > 0; }
 bool MprisPlayer::canSeek() const { return m_player->seekable(); }
+bool MprisPlayer::shuffle() const { return m_player->shuffle(); }
+void MprisPlayer::setShuffle(bool on) { m_player->setShuffle(on); }
+
+QString MprisPlayer::loopStatus() const
+{
+    switch (m_player->repeat()) {
+    case Player::RepeatAll: return QStringLiteral("Playlist");
+    case Player::RepeatOne: return QStringLiteral("Track");
+    default: return QStringLiteral("None");
+    }
+}
+
+void MprisPlayer::setLoopStatus(const QString &status)
+{
+    if (status == QLatin1String("Playlist"))
+        m_player->setRepeat(Player::RepeatAll);
+    else if (status == QLatin1String("Track"))
+        m_player->setRepeat(Player::RepeatOne);
+    else if (status == QLatin1String("None"))
+        m_player->setRepeat(Player::RepeatOff);
+}
 
 void MprisPlayer::Next() { m_player->next(); }
 void MprisPlayer::Previous() { m_player->previous(); }

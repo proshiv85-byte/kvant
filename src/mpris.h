@@ -71,6 +71,8 @@ class MprisPlayer : public QDBusAbstractAdaptor
     Q_PROPERTY(bool CanPause READ canPlay)
     Q_PROPERTY(bool CanSeek READ canSeek)
     Q_PROPERTY(bool CanControl READ canControl)
+    Q_PROPERTY(bool Shuffle READ shuffle WRITE setShuffle)
+    Q_PROPERTY(QString LoopStatus READ loopStatus WRITE setLoopStatus)
 
 public:
     MprisPlayer(Player *player, QObject *parent);
@@ -87,6 +89,10 @@ public:
     bool canPlay() const;
     bool canSeek() const;
     bool canControl() const { return true; }
+    bool shuffle() const;
+    void setShuffle(bool on);
+    QString loopStatus() const;
+    void setLoopStatus(const QString &status);
 
 public slots:
     void Next();

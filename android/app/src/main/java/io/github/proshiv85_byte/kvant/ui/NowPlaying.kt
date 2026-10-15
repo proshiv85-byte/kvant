@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.Player
 import io.github.proshiv85_byte.kvant.PlayerUi
 import io.github.proshiv85_byte.kvant.QueueSide
 import io.github.proshiv85_byte.kvant.R
@@ -54,6 +55,8 @@ class NowPlayingActions(
     val toggle: () -> Unit,
     val next: () -> Unit,
     val previous: () -> Unit,
+    val toggleShuffle: () -> Unit,
+    val cycleRepeat: () -> Unit,
     val seek: (Float) -> Unit,
 )
 
@@ -188,18 +191,34 @@ private fun ColumnScope.Details(ui: PlayerUi, position: Long, settings: Settings
         Text(Tracks.formatTime(ui.durationMs), style = tnum)
     }
     Row(
-        Modifier.align(Alignment.CenterHorizontally).padding(top = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        Modifier.align(Alignment.CenterHorizontally).widthIn(max = 400.dp).fillMaxWidth().padding(top = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         KIconButton(
-            KvantIcons.Previous, stringResource(R.string.previous), actions.previous,
-            variant = ButtonVariant.Tonal, size = 64.dp, iconSize = 30.dp, litNudge = (-4).dp,
+            KvantIcons.Shuffle, stringResource(if (ui.shuffle) R.string.shuffle_on else R.string.shuffle_off),
+            actions.toggleShuffle, variant = if (ui.shuffle) ButtonVariant.Tonal else ButtonVariant.Standard,
         )
-        PlayButton(ui.playing, actions.toggle)
+        KIconButton(
+            KvantIcons.Previous, stringResource(R.string.previous), actions.previous,
+            variant = ButtonVariant.Tonal, size = 60.dp, iconSize = 28.dp, litNudge = (-4).dp,
+        )
+        PlayButton(ui.playing, actions.toggle, size = 84.dp)
         KIconButton(
             KvantIcons.Next, stringResource(R.string.next), actions.next,
-            variant = ButtonVariant.Tonal, size = 64.dp, iconSize = 30.dp, litNudge = 4.dp, enabled = ui.canNext,
+            variant = ButtonVariant.Tonal, size = 60.dp, iconSize = 28.dp, litNudge = 4.dp, enabled = ui.canNext,
+        )
+        KIconButton(
+            if (ui.repeat == Player.REPEAT_MODE_ONE) KvantIcons.RepeatOne else KvantIcons.Repeat,
+            stringResource(
+                when (ui.repeat) {
+                    Player.REPEAT_MODE_ALL -> R.string.repeat_all
+                    Player.REPEAT_MODE_ONE -> R.string.repeat_one
+                    else -> R.string.repeat_off
+                }
+            ),
+            actions.cycleRepeat, litRotation = 180f,
+            variant = if (ui.repeat == Player.REPEAT_MODE_OFF) ButtonVariant.Standard else ButtonVariant.Tonal,
         )
     }
 }

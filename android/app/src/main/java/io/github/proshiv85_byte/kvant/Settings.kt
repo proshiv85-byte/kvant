@@ -25,6 +25,8 @@ data class Settings(
     val amplitude: Float = 3f,
     val wavelength: Float = 36f,
     val speed: Float = 1f,
+    val shuffle: Boolean = false,
+    val repeat: Int = 0, // Player.REPEAT_MODE_*
 )
 
 private val Context.dataStore by preferencesDataStore("settings")
@@ -39,6 +41,8 @@ class SettingsStore(private val context: Context) {
         val amplitude = floatPreferencesKey("amplitude")
         val wavelength = floatPreferencesKey("wavelength")
         val speed = floatPreferencesKey("speed")
+        val shuffle = booleanPreferencesKey("shuffle")
+        val repeat = intPreferencesKey("repeat")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { it.toSettings() }
@@ -54,6 +58,8 @@ class SettingsStore(private val context: Context) {
             prefs[Keys.amplitude] = s.amplitude
             prefs[Keys.wavelength] = s.wavelength
             prefs[Keys.speed] = s.speed
+            prefs[Keys.shuffle] = s.shuffle
+            prefs[Keys.repeat] = s.repeat
         }
     }
 
@@ -68,6 +74,8 @@ class SettingsStore(private val context: Context) {
             amplitude = this[Keys.amplitude] ?: d.amplitude,
             wavelength = this[Keys.wavelength] ?: d.wavelength,
             speed = this[Keys.speed] ?: d.speed,
+            shuffle = this[Keys.shuffle] ?: d.shuffle,
+            repeat = this[Keys.repeat] ?: d.repeat,
         )
     }
 }

@@ -32,6 +32,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import kotlin.random.Random
 
 data class QueueEntry(val id: String, val title: String, val artist: String, val durationMs: Long)
 
@@ -45,6 +46,8 @@ data class PlayerUi(
     val durationMs: Long = 0,
     val seekable: Boolean = false,
     val canNext: Boolean = false,
+    val shuffle: Boolean = false,
+    val repeat: Int = Player.REPEAT_MODE_OFF,
 ) {
     val hasTrack get() = current >= 0
 }
@@ -131,14 +134,16 @@ class KvantViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private suspend fun add(files: List<TrackFile>, replace: Boolean) {
         val c = controllerReady.await()
-        // Tags of the first track are read up front, so playback starts with the right info.
-        val first = withContext(Dispatchers.IO) { Tracks.read(app, files[0]) }
-        val items = files.mapIndexed { i, f -> mediaItem(f, if (i == 0) first else null) }
+        // With shuffle on, a new queue starts at a random track (the service shuffles the
+        // rest after it). Its tags are read up front, so playback starts with the right info.
+        val start = if (replace && c.shuffleModeEnabled) Random.nextInt(files.size) else 0
+        val first = withContext(Dispatchers.IO) { Tracks.read(app, files[start]) }
+        val items = files.mapIndexed { i, f -> mediaItem(f, if (i == start) first else null) }
 
         if (replace) {
             tagJobs.forEach { it.cancel() }
             tagJobs.clear()
-            c.setMediaItems(items)
+            c.setMediaItems(items, start, 0)
             c.prepare()
             c.play()
         } else {
@@ -151,7 +156,7 @@ class KvantViewModel(private val app: Application) : AndroidViewModel(app) {
                 c.play()
             }
         }
-        loadTags(items.drop(1).zip(files.drop(1)))
+        loadTags(items.zip(files).filterIndexed { i, _ -> i != start })
     }
 
     private fun mediaItem(f: TrackFile, info: TrackInfo?): MediaItem =
@@ -219,6 +224,15 @@ class KvantViewModel(private val app: Application) : AndroidViewModel(app) {
         controller?.seekToPrevious()
     }
 
+    fun toggleShuffle() {
+        controller?.run { shuffleModeEnabled = !shuffleModeEnabled }
+    }
+
+    /** Off → all → one → off, like the desktop app. */
+    fun cycleRepeat() {
+        controller?.run { repeatMode = nextRepeatMode(repeatMode) }
+    }
+
     fun seek(fraction: Float) {
         val c = controller ?: return
         val target = (fraction * _ui.value.durationMs).toLong()
@@ -276,6 +290,8 @@ class KvantViewModel(private val app: Application) : AndroidViewModel(app) {
             durationMs = duration,
             seekable = c.isCurrentMediaItemSeekable,
             canNext = c.hasNextMediaItem(),
+            shuffle = c.shuffleModeEnabled,
+            repeat = c.repeatMode,
         )
         _position.value = c.currentPosition
         if (item?.mediaId != coverFor) loadCover(item)
@@ -295,4 +311,10 @@ class KvantViewModel(private val app: Application) : AndroidViewModel(app) {
             _cover.value = bitmap?.asImageBitmap()
         }
     }
+}
+
+fun nextRepeatMode(mode: Int): Int = when (mode) {
+    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+    else -> Player.REPEAT_MODE_OFF
 }

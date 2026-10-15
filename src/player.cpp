@@ -7,10 +7,14 @@
 #include <QFile>
 #include <QJSEngine>
 #include <QPointer>
+#include <QRandomGenerator>
+#include <QSet>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QtMultimedia/qtaudio.h>
 #include <QtConcurrent/QtConcurrentRun>
+
+#include <algorithm>
 
 Player::Player(CoverProvider *covers, QObject *parent)
     : QObject(parent)
@@ -27,11 +31,15 @@ Player::Player(CoverProvider *covers, QObject *parent)
     connect(m_output, &QAudioOutput::volumeChanged, this, &Player::volumeChanged);
     connect(&m_player, &QMediaPlayer::errorOccurred, this, [this](QMediaPlayer::Error, const QString &msg) {
         emit errorOccurred(msg);
-        if (canNext())
-            QTimer::singleShot(0, this, &Player::next);
+        // Skip unplayable files, but never wrap around: a queue of broken files would loop.
+        if (const int row = stepFrom(1, false); row >= 0)
+            QTimer::singleShot(0, this, [this, row] { playIndex(row); });
     });
 
-    connect(&m_queue, &QueueModel::countChanged, this, &Player::navigationChanged);
+    connect(&m_queue, &QueueModel::countChanged, this, [this] {
+        syncOrder();
+        emit navigationChanged();
+    });
     connect(&m_queue, &QueueModel::currentIndexChanged, this, [this] {
         emit navigationChanged();
         emit trackChanged();
@@ -93,12 +101,92 @@ void Player::setVolume(double v)
 
 bool Player::canNext() const
 {
-    return m_queue.currentIndex() + 1 < m_queue.rowCount();
+    return stepFrom(1, m_repeat == RepeatAll) >= 0;
 }
 
 bool Player::canPrevious() const
 {
     return hasTrack();
+}
+
+void Player::setShuffle(bool on)
+{
+    if (on == m_shuffle)
+        return;
+    m_shuffle = on;
+    if (on)
+        reshuffle();
+    else
+        m_order.clear();
+    emit shuffleChanged();
+    emit navigationChanged();
+}
+
+void Player::setRepeat(RepeatMode mode)
+{
+    if (mode == m_repeat)
+        return;
+    m_repeat = mode;
+    emit repeatChanged();
+    emit navigationChanged();
+}
+
+// Like Android's Media3: Next and Previous treat "repeat one" as off, and the
+// current track keeps repeating only when it ends on its own.
+int Player::stepFrom(int dir, bool wrap) const
+{
+    const int count = m_queue.rowCount();
+    const int current = m_queue.currentIndex();
+    if (current < 0 || count == 0)
+        return -1;
+    if (!m_shuffle) {
+        const int row = current + dir;
+        if (row >= 0 && row < count)
+            return row;
+        return wrap ? (row + count) % count : -1;
+    }
+    const int pos = int(m_order.indexOf(m_queue.id(current)));
+    if (pos < 0)
+        return -1;
+    int next = pos + dir;
+    if (next < 0 || next >= m_order.size()) {
+        if (!wrap)
+            return -1;
+        next = int((next + m_order.size()) % m_order.size());
+    }
+    return m_queue.row(m_order.at(next));
+}
+
+// New random order with the current track first, so everything else is still ahead.
+void Player::reshuffle()
+{
+    m_order.clear();
+    for (int row = 0; row < m_queue.rowCount(); ++row)
+        m_order.append(m_queue.id(row));
+    std::shuffle(m_order.begin(), m_order.end(), *QRandomGenerator::global());
+    if (hasTrack())
+        m_order.move(m_order.indexOf(currentId()), 0);
+}
+
+// Keeps the play order in step with the queue: drops removed tracks and slots new
+// ones in at random places after the current track.
+void Player::syncOrder()
+{
+    if (!m_shuffle)
+        return;
+    QSet<quint64> inQueue;
+    for (int row = 0; row < m_queue.rowCount(); ++row)
+        inQueue.insert(m_queue.id(row));
+    m_order.removeIf([&](quint64 id) { return !inQueue.contains(id); });
+
+    const QSet<quint64> known(m_order.cbegin(), m_order.cend());
+    const int after = hasTrack() ? int(m_order.indexOf(currentId())) + 1 : 0;
+    auto *rng = QRandomGenerator::global();
+    for (int row = 0; row < m_queue.rowCount(); ++row) {
+        const quint64 id = m_queue.id(row);
+        if (!known.contains(id))
+            m_order.insert(after + rng->bounded(int(m_order.size()) - after + 1), id);
+    }
 }
 
 void Player::open(const QList<QUrl> &urls, bool replace)
@@ -121,7 +209,12 @@ void Player::openPaths(const QStringList &paths, bool replace)
     }
     if (replace) {
         m_queue.replace(files);
-        playIndex(0);
+        if (m_shuffle) {
+            reshuffle();
+            playIndex(m_queue.row(m_order.first()));
+        } else {
+            playIndex(0);
+        }
         return;
     }
     const int first = m_queue.rowCount();
@@ -176,17 +269,17 @@ void Player::stop()
 
 void Player::next()
 {
-    if (canNext())
-        playIndex(m_queue.currentIndex() + 1);
+    if (const int row = stepFrom(1, m_repeat == RepeatAll); row >= 0)
+        playIndex(row);
 }
 
 void Player::previous()
 {
-    const int row = m_queue.currentIndex();
-    if (m_player.position() > 3000 || row <= 0)
+    const int row = m_player.position() > 3000 ? -1 : stepFrom(-1, m_repeat == RepeatAll);
+    if (row < 0)
         seek(0);
     else
-        playIndex(row - 1);
+        playIndex(row);
 }
 
 void Player::seek(qint64 ms)
@@ -199,11 +292,16 @@ void Player::seek(qint64 ms)
 
 void Player::onStatusChanged(QMediaPlayer::MediaStatus status)
 {
-    if (status == QMediaPlayer::EndOfMedia) {
-        if (canNext())
-            next();
-        else
-            m_player.setPosition(0);
+    if (status != QMediaPlayer::EndOfMedia)
+        return;
+    const int row = m_repeat == RepeatOne ? m_queue.currentIndex() : stepFrom(1, m_repeat == RepeatAll);
+    if (row < 0) {
+        m_player.setPosition(0); // end of the queue: stop at the start of the last track
+    } else if (row == m_queue.currentIndex()) {
+        m_player.setPosition(0);
+        m_player.play();
+    } else {
+        playIndex(row);
     }
 }
 
