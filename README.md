@@ -21,7 +21,8 @@ progress line, a morphing play button and a full color scheme generated from one
 - Picks up where you left off: the queue, track and position are restored (paused) when you start Kvant again.
   On Android, a headset or Bluetooth play button resumes it even when the app is closed
 - Squiggly progress bar that settles into a flat line when paused. You can set its height, wavelength and speed, or switch it off
-- Light / Dark / follow system theme, with any accent color
+- Light / Dark / follow system theme, with any accent color or the system's own accent color
+  (Material You on Android 12+, the desktop accent on KDE Plasma and GNOME 47+)
 - Drag & drop files and folders onto the window to add them to the queue
 - MPRIS support: media keys, desktop media widgets, `playerctl` (including shuffle and loop)
 - On Android: notification and lock screen controls with shuffle and repeat buttons. These are also

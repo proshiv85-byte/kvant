@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
+class QDBusVariant;
 class QQmlEngine;
 class QJSEngine;
 
@@ -17,6 +18,8 @@ class Theme : public QObject
     QML_SINGLETON
     Q_PROPERTY(QColor seed READ seed WRITE setSeed NOTIFY seedChanged)
     Q_PROPERTY(bool dark READ dark WRITE setDark NOTIFY darkChanged)
+    // The desktop's accent color (xdg-desktop-portal, else Qt's palette). Invalid if unknown.
+    Q_PROPERTY(QColor systemAccent READ systemAccent NOTIFY systemAccentChanged)
     Q_PROPERTY(QColor primary MEMBER primary NOTIFY schemeChanged)
     Q_PROPERTY(QColor onPrimary MEMBER onPrimary NOTIFY schemeChanged)
     Q_PROPERTY(QColor primaryContainer MEMBER primaryContainer NOTIFY schemeChanged)
@@ -51,14 +54,28 @@ public:
     void setSeed(const QColor &c);
     bool dark() const { return m_dark; }
     void setDark(bool d);
+    QColor systemAccent() const { return m_portalAccent.isValid() ? m_portalAccent : m_paletteAccent; }
 
 signals:
     void seedChanged();
     void darkChanged();
     void schemeChanged();
+    void systemAccentChanged();
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
+private slots:
+    void onPortalSettingChanged(const QString &ns, const QString &key, const QDBusVariant &value);
 
 private:
     void rebuild();
+    void watchSystemAccent();
+    void setPortalAccent(const QVariant &value);
+    void setPaletteAccent();
+
+    QColor m_portalAccent;
+    QColor m_paletteAccent;
 
     QColor m_seed = QColor(0x67, 0x50, 0xA4);
     bool m_dark = true;

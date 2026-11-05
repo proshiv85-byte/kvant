@@ -24,6 +24,7 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="accent_color">Accent color</string>
+    <string name="system_accent">Use system accent color</string>
     <string name="queue_position">Queue position</string>
     <string name="side_left">Left</string>
     <string name="side_right">Right</string>

@@ -58,6 +58,7 @@ import io.github.proshiv85_byte.kvant.QueueSide
 import io.github.proshiv85_byte.kvant.R
 import io.github.proshiv85_byte.kvant.Settings
 import io.github.proshiv85_byte.kvant.ThemeMode
+import io.github.proshiv85_byte.kvant.ui.theme.systemAccentSupported
 
 private val swatches = listOf(
     0xFF6750A4, 0xFF0061A4, 0xFF006A6A, 0xFF386A20,
@@ -103,12 +104,21 @@ fun SettingsSheet(settings: Settings, onChange: ((Settings) -> Settings) -> Unit
             }
 
             Section(stringResource(R.string.accent_color))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                swatches.forEach { argb ->
-                    Swatch(Color(argb), selected = draft.accent == argb) { commit(draft.copy(accent = argb)) }
-                }
+            val useSystem = systemAccentSupported && draft.systemAccent
+            if (systemAccentSupported) {
+                SwitchRow(stringResource(R.string.system_accent), draft.systemAccent) { commit(draft.copy(systemAccent = it)) }
+                Spacer(Modifier.height(12.dp))
             }
-            HexField(draft.accent) { commit(draft.copy(accent = it)) }
+            Column(Modifier.graphicsLayer { alpha = if (useSystem) 0.38f else 1f }) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    swatches.forEach { argb ->
+                        Swatch(Color(argb), selected = !useSystem && draft.accent == argb, enabled = !useSystem) {
+                            commit(draft.copy(accent = argb))
+                        }
+                    }
+                }
+                HexField(draft.accent, enabled = !useSystem) { commit(draft.copy(accent = it)) }
+            }
 
             Section(stringResource(R.string.queue_position))
             val sides = listOf(R.string.side_left to QueueSide.Left, R.string.side_right to QueueSide.Right)
@@ -123,16 +133,7 @@ fun SettingsSheet(settings: Settings, onChange: ((Settings) -> Settings) -> Unit
             }
 
             Section(stringResource(R.string.progress_bar))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.squiggly_line), Modifier.weight(1f), color = colors.onSurface, fontSize = 16.sp)
-                Switch(
-                    checked = draft.squiggle,
-                    onCheckedChange = { commit(draft.copy(squiggle = it)) },
-                    thumbContent = if (draft.squiggle) {
-                        { Icon(KvantIcons.Check, null, Modifier.size(16.dp)) }
-                    } else null,
-                )
-            }
+            SwitchRow(stringResource(R.string.squiggly_line), draft.squiggle) { commit(draft.copy(squiggle = it)) }
             // Live preview
             WavySeekBar(
                 value = 0.6f, playing = true, squiggle = draft.squiggle,
@@ -160,7 +161,21 @@ private fun Section(title: String) {
 }
 
 @Composable
-private fun Swatch(color: Color, selected: Boolean, onClick: () -> Unit) {
+private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp)
+        Switch(
+            checked = checked,
+            onCheckedChange = onChange,
+            thumbContent = if (checked) {
+                { Icon(KvantIcons.Check, null, Modifier.size(16.dp)) }
+            } else null,
+        )
+    }
+}
+
+@Composable
+private fun Swatch(color: Color, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val corner by animateDpAsState(if (selected) 14.dp else 22.dp, spring(dampingRatio = 0.5f), label = "swatchCorner")
@@ -177,7 +192,7 @@ private fun Swatch(color: Color, selected: Boolean, onClick: () -> Unit) {
             }
             .clip(RoundedCornerShape(corner))
             .background(color)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(KvantIcons.Check, null, tint = Color.White, modifier = Modifier.size(22.dp).graphicsLayer {
@@ -189,7 +204,7 @@ private fun Swatch(color: Color, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun HexField(accent: Int, onAccent: (Int) -> Unit) {
+private fun HexField(accent: Int, enabled: Boolean, onAccent: (Int) -> Unit) {
     fun hexOf(argb: Int) = "#%06X".format(argb and 0xFFFFFF)
     var text by remember(accent) { mutableStateOf(hexOf(accent)) }
     Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -203,6 +218,7 @@ private fun HexField(accent: Int, onAccent: (Int) -> Unit) {
                 if (clean.length == 7) onAccent(("FF" + clean.drop(1)).toLong(16).toInt())
             },
             singleLine = true,
+            enabled = enabled,
             placeholder = { Text("#RRGGBB") },
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),

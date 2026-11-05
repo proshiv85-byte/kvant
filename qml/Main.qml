@@ -42,6 +42,7 @@ ApplicationWindow {
         id: settings
 
         property string accent: "#6750A4"
+        property bool systemAccent: false
         property int themeMode: 0 // 0 = system, 1 = light, 2 = dark
         property string queueSide: "left"
         property bool queueOpen: true
@@ -57,7 +58,7 @@ ApplicationWindow {
     Binding {
         target: Theme
         property: "seed"
-        value: settings.accent
+        value: settings.systemAccent && Theme.systemAccent.valid ? Theme.systemAccent : settings.accent
     }
     Binding {
         target: Theme
