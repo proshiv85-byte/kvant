@@ -81,7 +81,7 @@ fun KvantApp(vm: KvantViewModel) {
         onDispose {}
     }
 
-    KvantTheme(Color(settings.accent), dark) {
+    KvantTheme(Color(settings.accent), dark, settings.systemAccent) {
         // Opening from Now Playing replaces the queue; the queue's own buttons append.
         var replace by remember { mutableStateOf(true) }
         val pickFiles = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->

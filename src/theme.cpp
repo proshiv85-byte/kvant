@@ -1,7 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "theme.h"
 
+#include <QDBusArgument>
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
+#include <QDBusVariant>
+#include <QEvent>
+#include <QGuiApplication>
 #include <QJSEngine>
+#include <QPalette>
 
 #include <algorithm>
 #include <cmath>
@@ -93,10 +102,114 @@ QColor toneColor(double h, double chroma, double tone)
 
 } // namespace
 
+namespace {
+constexpr auto PortalService = "org.freedesktop.portal.Desktop";
+constexpr auto PortalPath = "/org/freedesktop/portal/desktop";
+constexpr auto PortalSettings = "org.freedesktop.portal.Settings";
+constexpr auto Appearance = "org.freedesktop.appearance";
+constexpr auto AccentKey = "accent-color";
+
+// Unwraps nested variants (the old portal Read() method returns a variant in a variant).
+QVariant unwrap(QVariant v)
+{
+    while (v.metaType() == QMetaType::fromType<QDBusVariant>())
+        v = v.value<QDBusVariant>().variant();
+    return v;
+}
+} // namespace
+
 Theme::Theme(QObject *parent)
     : QObject(parent)
 {
     rebuild();
+    watchSystemAccent();
+}
+
+// KDE Plasma and GNOME 47+ publish the accent color through xdg-desktop-portal (also inside
+// Flatpak). Qt's palette accent is the fallback for desktops without it.
+void Theme::watchSystemAccent()
+{
+    setPaletteAccent();
+    if (qApp)
+        qApp->installEventFilter(this);
+
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    if (!bus.isConnected())
+        return;
+    bus.connect(PortalService, PortalPath, PortalSettings, "SettingChanged", this,
+                SLOT(onPortalSettingChanged(QString, QString, QDBusVariant)));
+
+    auto read = [this, bus](const char *method) {
+        QDBusMessage msg = QDBusMessage::createMethodCall(PortalService, PortalPath, PortalSettings, method);
+        msg << QString::fromLatin1(Appearance) << QString::fromLatin1(AccentKey);
+        return new QDBusPendingCallWatcher(bus.asyncCall(msg), this);
+    };
+    // ReadOne() is portal version 2; older portals only have Read().
+    auto *watcher = read("ReadOne");
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, read](QDBusPendingCallWatcher *w) {
+        w->deleteLater();
+        QDBusPendingReply<QDBusVariant> reply = *w;
+        if (!reply.isError()) {
+            setPortalAccent(reply.value().variant());
+            return;
+        }
+        if (reply.error().type() != QDBusError::UnknownMethod)
+            return;
+        auto *fallback = read("Read");
+        connect(fallback, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher *w2) {
+            w2->deleteLater();
+            QDBusPendingReply<QDBusVariant> r = *w2;
+            if (!r.isError())
+                setPortalAccent(r.value().variant());
+        });
+    });
+}
+
+void Theme::onPortalSettingChanged(const QString &ns, const QString &key, const QDBusVariant &value)
+{
+    if (ns == QLatin1String(Appearance) && key == QLatin1String(AccentKey))
+        setPortalAccent(value.variant());
+}
+
+// The value is (ddd): sRGB in 0..1. Anything out of range means "not set".
+void Theme::setPortalAccent(const QVariant &value)
+{
+    QColor c;
+    const QVariant v = unwrap(value);
+    if (v.canConvert<QDBusArgument>()) {
+        const QDBusArgument arg = v.value<QDBusArgument>();
+        double r = -1, g = -1, b = -1;
+        arg.beginStructure();
+        arg >> r >> g >> b;
+        arg.endStructure();
+        auto ok = [](double x) { return x >= 0.0 && x <= 1.0; };
+        if (ok(r) && ok(g) && ok(b))
+            c = QColor::fromRgbF(float(r), float(g), float(b));
+    }
+    if (c == m_portalAccent)
+        return;
+    m_portalAccent = c;
+    emit systemAccentChanged();
+}
+
+void Theme::setPaletteAccent()
+{
+    // Qt's built-in palette (no platform theme) says nothing about the desktop.
+    QColor c = QGuiApplication::palette().color(QPalette::Accent);
+    if (c == QPalette().color(QPalette::Accent) && !QGuiApplication::testAttribute(Qt::AA_SetPalette))
+        c = QColor();
+    if (c == m_paletteAccent)
+        return;
+    m_paletteAccent = c;
+    if (!m_portalAccent.isValid())
+        emit systemAccentChanged();
+}
+
+bool Theme::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == qApp && event->type() == QEvent::ApplicationPaletteChange)
+        setPaletteAccent();
+    return QObject::eventFilter(watched, event);
 }
 
 Theme *Theme::create(QQmlEngine *, QJSEngine *)

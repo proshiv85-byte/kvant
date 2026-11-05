@@ -115,82 +115,103 @@ Popup {
                 }
 
                 SectionTitle { text: qsTr("Accent color") }
-                Flow {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Repeater {
-                        model: root.swatches
-                        delegate: Rectangle {
-                            id: swatch
-                            required property string modelData
-                            readonly property bool selected: Qt.colorEqual(root.prefs.accent, modelData)
-                            width: 40
-                            height: 40
-                            radius: selected ? 12 : swatchArea.containsMouse ? 16 : 20
-                            color: modelData
-                            scale: swatchArea.pressed ? 0.9 : swatchArea.containsMouse ? 1.12 : 1
-                            Behavior on radius { SpringAnimation { spring: 4; damping: 0.3; epsilon: 0.05 } }
-                            Behavior on scale { SpringAnimation { spring: 5; damping: 0.28; epsilon: 0.002 } }
-
-                            Icon {
-                                anchors.centerIn: parent
-                                name: "check"
-                                size: 20
-                                color: "white"
-                                opacity: swatch.selected ? 1 : 0
-                                scale: swatch.selected ? 1 : 0.3
-                                Behavior on opacity { NumberAnimation { duration: 150 } }
-                                Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
-                            }
-                            MouseArea {
-                                id: swatchArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.prefs.accent = swatch.modelData
-                            }
-                        }
-                    }
-                }
-
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.topMargin: 12
-                    spacing: 12
-
-                    Rectangle {
-                        Layout.preferredWidth: 40
-                        Layout.preferredHeight: 40
-                        radius: 12
-                        color: root.prefs.accent
-                    }
-                    TextField {
-                        id: hexField
+                    Layout.bottomMargin: 12
+                    visible: Theme.systemAccent.valid
+                    Text {
                         Layout.fillWidth: true
-                        text: root.prefs.accent.toString().toUpperCase()
-                        placeholderText: "#RRGGBB"
+                        text: qsTr("Use system accent color")
                         color: Theme.onSurface
-                        placeholderTextColor: Theme.onSurfaceVariant
-                        selectionColor: Theme.primary
-                        selectedTextColor: Theme.onPrimary
                         font.pixelSize: 15
-                        font.features: { "tnum": 1 }
-                        leftPadding: 16
-                        validator: RegularExpressionValidator { regularExpression: /#?[0-9a-fA-F]{0,6}/ }
-                        background: Rectangle {
-                            implicitHeight: 48
-                            radius: 8
-                            color: "transparent"
-                            border.width: hexField.activeFocus ? 2 : 1
-                            border.color: hexField.activeFocus ? Theme.primary : Theme.outline
+                    }
+                    M3Switch {
+                        checked: root.prefs.systemAccent
+                        onToggled: root.prefs.systemAccent = checked
+                    }
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+                    enabled: !(root.prefs.systemAccent && Theme.systemAccent.valid)
+                    opacity: enabled ? 1 : 0.38
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Repeater {
+                            model: root.swatches
+                            delegate: Rectangle {
+                                id: swatch
+                                required property string modelData
+                                readonly property bool selected: swatch.enabled && Qt.colorEqual(root.prefs.accent, modelData)
+                                width: 40
+                                height: 40
+                                radius: selected ? 12 : swatchArea.containsMouse ? 16 : 20
+                                color: modelData
+                                scale: swatchArea.pressed ? 0.9 : swatchArea.containsMouse ? 1.12 : 1
+                                Behavior on radius { SpringAnimation { spring: 4; damping: 0.3; epsilon: 0.05 } }
+                                Behavior on scale { SpringAnimation { spring: 5; damping: 0.28; epsilon: 0.002 } }
+
+                                Icon {
+                                    anchors.centerIn: parent
+                                    name: "check"
+                                    size: 20
+                                    color: "white"
+                                    opacity: swatch.selected ? 1 : 0
+                                    scale: swatch.selected ? 1 : 0.3
+                                    Behavior on opacity { NumberAnimation { duration: 150 } }
+                                    Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                                }
+                                MouseArea {
+                                    id: swatchArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.prefs.accent = swatch.modelData
+                                }
+                            }
                         }
-                        onEditingFinished: {
-                            const hex = text.replace("#", "")
-                            if (hex.length === 6)
-                                root.prefs.accent = "#" + hex.toUpperCase()
-                            else
-                                text = root.prefs.accent.toString().toUpperCase()
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 12
+                        spacing: 12
+
+                        Rectangle {
+                            Layout.preferredWidth: 40
+                            Layout.preferredHeight: 40
+                            radius: 12
+                            color: root.prefs.accent
+                        }
+                        TextField {
+                            id: hexField
+                            Layout.fillWidth: true
+                            text: root.prefs.accent.toString().toUpperCase()
+                            placeholderText: "#RRGGBB"
+                            color: Theme.onSurface
+                            placeholderTextColor: Theme.onSurfaceVariant
+                            selectionColor: Theme.primary
+                            selectedTextColor: Theme.onPrimary
+                            font.pixelSize: 15
+                            font.features: { "tnum": 1 }
+                            leftPadding: 16
+                            validator: RegularExpressionValidator { regularExpression: /#?[0-9a-fA-F]{0,6}/ }
+                            background: Rectangle {
+                                implicitHeight: 48
+                                radius: 8
+                                color: "transparent"
+                                border.width: hexField.activeFocus ? 2 : 1
+                                border.color: hexField.activeFocus ? Theme.primary : Theme.outline
+                            }
+                            onEditingFinished: {
+                                const hex = text.replace("#", "")
+                                if (hex.length === 6)
+                                    root.prefs.accent = "#" + hex.toUpperCase()
+                                else
+                                    text = root.prefs.accent.toString().toUpperCase()
+                            }
                         }
                     }
                 }

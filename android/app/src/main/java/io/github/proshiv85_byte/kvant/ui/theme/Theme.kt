@@ -1,17 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.proshiv85_byte.kvant.ui.theme
 
+import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+
+/** The system accent color (Material You) is only available on Android 12 and newer. */
+val systemAccentSupported: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 @Composable
-fun KvantTheme(seed: Color, dark: Boolean, content: @Composable () -> Unit) {
-    val target = remember(seed, dark) { Palette.scheme(seed, dark) }
+fun KvantTheme(seed: Color, dark: Boolean, systemAccent: Boolean, content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    // The system colors change with the wallpaper; that arrives as a configuration change.
+    val configuration = LocalConfiguration.current
+    val target = remember(seed, dark, systemAccent, configuration) {
+        when {
+            systemAccent && systemAccentSupported ->
+                if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            else -> Palette.scheme(seed, dark)
+        }
+    }
     MaterialTheme(colorScheme = animated(target), content = content)
 }
 

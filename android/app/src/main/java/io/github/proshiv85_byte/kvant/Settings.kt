@@ -18,6 +18,7 @@ enum class QueueSide { Left, Right }
 /** Same options as the desktop app. */
 data class Settings(
     val accent: Int = 0xFF6750A4.toInt(),
+    val systemAccent: Boolean = false, // Android 12+: the system's (wallpaper) colors
     val themeMode: ThemeMode = ThemeMode.System,
     val queueSide: QueueSide = QueueSide.Left,
     val queueOpen: Boolean = true, // inline panel on wide screens
@@ -34,6 +35,7 @@ private val Context.dataStore by preferencesDataStore("settings")
 class SettingsStore(private val context: Context) {
     private object Keys {
         val accent = intPreferencesKey("accent")
+        val systemAccent = booleanPreferencesKey("systemAccent")
         val themeMode = stringPreferencesKey("themeMode")
         val queueSide = stringPreferencesKey("queueSide")
         val queueOpen = booleanPreferencesKey("queueOpen")
@@ -51,6 +53,7 @@ class SettingsStore(private val context: Context) {
         context.dataStore.edit { prefs ->
             val s = transform(prefs.toSettings())
             prefs[Keys.accent] = s.accent
+            prefs[Keys.systemAccent] = s.systemAccent
             prefs[Keys.themeMode] = s.themeMode.name
             prefs[Keys.queueSide] = s.queueSide.name
             prefs[Keys.queueOpen] = s.queueOpen
@@ -67,6 +70,7 @@ class SettingsStore(private val context: Context) {
         val d = Settings()
         return Settings(
             accent = this[Keys.accent] ?: d.accent,
+            systemAccent = this[Keys.systemAccent] ?: d.systemAccent,
             themeMode = this[Keys.themeMode]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: d.themeMode,
             queueSide = this[Keys.queueSide]?.let { runCatching { QueueSide.valueOf(it) }.getOrNull() } ?: d.queueSide,
             queueOpen = this[Keys.queueOpen] ?: d.queueOpen,
