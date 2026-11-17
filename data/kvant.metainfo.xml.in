@@ -44,6 +44,14 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.0" date="2026-11-17">
+      <description>
+        <ul>
+          <li>Option to follow the system accent color (xdg-desktop-portal on Linux, Material You on Android 12+)</li>
+          <li>Android: asks for the notification permission so playback controls show up on all devices</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-10-15">
       <description>
         <ul>
